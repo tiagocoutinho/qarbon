@@ -10,10 +10,10 @@
 
 """A set of widgets to get input from the user."""
 
+__all__ = ["InputPanel"]
+
 import sys
 import collections
-
-__all__ = ["InputPanel"]
 
 from qarbon.external.qt import QtCore, QtGui
 from qarbon.qt.gui.application import Application
@@ -73,7 +73,7 @@ class InputPanel(QtGui.QWidget):
         class Listener(object):
             def onAccept(self):
                 print "user selected", w.value()
-            
+
         l = Listener()
         w.buttonBox().accepted.connect(l.onAccept)
         w.show()
@@ -394,7 +394,7 @@ def main():
     class Listener(object):
         def onAccept(self):
             print "user selected", w.value()
-            
+
     l = Listener()
     w.buttonBox().accepted.connect(l.onAccept)
     w.show()
@@ -402,4 +402,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

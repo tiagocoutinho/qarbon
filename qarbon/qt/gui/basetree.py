@@ -15,7 +15,6 @@ __all__ = ["BaseTreeWidget"]
 from qarbon.external.qt import QtCore, QtGui
 from qarbon.qt.gui.icon import getIcon
 from qarbon.qt.gui.action import getAction
-
 from qarbon.qt.gui.baseview import BaseToolBar, BaseModelWidget
 
 

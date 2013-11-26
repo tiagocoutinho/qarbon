@@ -287,7 +287,8 @@ def main():
 
             ratio_widget.addItems(["Ignore", "Keep", "Keep by expanding"])
             transformation_widget.addItem("Fast", QtCore.Qt.FastTransformation)
-            transformation_widget.addItem("Smooth", QtCore.Qt.SmoothTransformation)
+            transformation_widget.addItem("Smooth",
+                                          QtCore.Qt.SmoothTransformation)
             halign_widget.addItem("Left", QtCore.Qt.AlignLeft)
             halign_widget.addItem("Center", QtCore.Qt.AlignHCenter)
             halign_widget.addItem("Right", QtCore.Qt.AlignRight)

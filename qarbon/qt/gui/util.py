@@ -15,9 +15,9 @@ __all__ = ["isWidget", "isWidgetClass", "getWidgetClasses",
 
 import time
 import inspect
-import logging
 import threading
 
+from qarbon import log
 from qarbon.util import moduleImport
 from qarbon.external.qt import QtCore, QtGui
 
@@ -68,7 +68,7 @@ def getWidgetClasses(module_name):
 
 class __GrabberThread(threading.Thread):
     """Helper to trigger grabbing a widget periodically"""
-    
+
     def __init__(self, widget, fileName, period):
         threading.Thread.__init__(self, name="Grabber")
         self.daemon = True
@@ -77,16 +77,16 @@ class __GrabberThread(threading.Thread):
         self.__period = period
         self.__continue = True
         self.__grabber = __Grabber(widget, fileName)
-        
+
     def run(self):
         period = self.__period
         while self.__continue:
             self.__grabber.grabTrigger()
             time.sleep(period)
-    
+
     def stop(self):
         self.__continue = False
-    
+
 
 class __Grabber(QtCore.QObject):
 
@@ -97,10 +97,10 @@ class __Grabber(QtCore.QObject):
         self.__widget = widget
         self.__fileName = fileName
         self.grab.connect(self.__onGrab)
-    
+
     def grabTrigger(self):
         self.grab.emit()
-        
+
     def __onGrab(self):
         grabWidget(self._widget, self._fileName)
 
@@ -109,11 +109,11 @@ def grabWidget(widget, fileName, period=None):
     """Grabs the given widget into the given image filename. If period is
     None (default) it grabs immediately once and returns.
     If period is given and >0 means grab the image every period (in seconds).
-    
+
     .. warning::
         this method **MUST** be called from the same thread which created
         the widget
-    
+
     :param widget: the Qt widget to be grabbed
     :type widget: QtWidget
     :param fileName:  the name of the image file
@@ -124,14 +124,14 @@ def grabWidget(widget, fileName, period=None):
     if period is None:
         widgetName = widget.objectName()
         widgetTitle = widget.windowTitle()
-        logging.debug("Grabbing widget '%s' to '%s':", widgetName, fileName)
+        log.debug("Grabbing widget '%s' to '%s':", widgetName, fileName)
         try:
             pixmap = QtGui.QPixmap.grabWidget(widget)
             if fileName.endswith('.svg'):
                 import qarbon.external.qt.QtSvg
                 generator = qarbon.external.qt.QtSvg.QSvgGenerator()
                 generator.setFileName(fileName)
-                generator.setSize(pixmap.size());
+                generator.setSize(pixmap.size())
                 if hasattr(generator, 'setViewBox'):
                     viewBox = QtCore.QRect(QtCore.QPoint(0, 0), pixmap.size())
                     generator.setViewBox(viewBox)
@@ -152,10 +152,9 @@ def grabWidget(widget, fileName, period=None):
             else:
                 pixmap.save(fileName, quality=100)
         except Exception:
-            logging.warning("Could not save file into '%s':", fileName)
-            logging.debug("Details:", exc_info=1)
+            log.warning("Could not save file into '%s':", fileName)
+            log.debug("Details:", exc_info=1)
 
     ret = __GrabberThread(widget, fileName, period)
     ret.start()
     return ret
-

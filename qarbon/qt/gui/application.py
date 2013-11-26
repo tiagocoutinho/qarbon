@@ -27,8 +27,7 @@ program.
 
 __all__ = ["Application"]
 
-import logging
-
+from qarbon import log
 from qarbon.external.qt import QtGui
 
 
@@ -69,8 +68,8 @@ def getApplication(argv=None, **properties):
             from sys import argv
         app = QtGui.QApplication(argv)
     elif argv:
-        logging.info("QApplication already initialized. argv will have no "
-                     "effect")
+        log.info("QApplication already initialized. argv will have no "
+                 "effect")
     return app
 
 

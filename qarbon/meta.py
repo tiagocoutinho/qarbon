@@ -19,6 +19,7 @@ from qarbon.util import isString
 
 _PY3 = sys.version_info[0] > 2
 
+
 class DataAccess(Enum):
     """Data access enum"""
 
@@ -32,7 +33,7 @@ class DataType(Enum):
       Binary, _Invalid = range(8)
 
     #: dictionary dict<data type, :class:`DataType`>
-    __DTYPE_MAP = { 
+    __DTYPE_MAP = {
         'int':         Integer,
         'integer':     Integer,
         int:           Integer,
@@ -60,12 +61,12 @@ class DataType(Enum):
         'bytes':       Binary,
         Binary:        Binary,
     }
-    
+
     if _PY3:
         __DTYPE_MAP[bytes] = Binary
     else:
         __DTYPE_MAP[long] = Integer
-    
+
     __PYTYPE_MAP = {
         Integer:     int,
         Float:       float,

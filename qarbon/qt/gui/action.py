@@ -16,7 +16,7 @@ Example::
     from qarbon.qt.gui.application import Application
     from qarbon.qt.gui.action import Action
     from qarbon.qt.gui.icon import Icon
-    
+
     def onImageFileOpen():
         fileName = QtGui.QFileDialog.getOpenFileName(None,
             "Open Image", "/home/homer",

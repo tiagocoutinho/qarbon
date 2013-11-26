@@ -208,7 +208,7 @@ class PerspectiveToolBar(BaseToolBar):
         for persp, persp_data in view.KnownPerspectives.items():
             label = persp_data["label"]
             icon = QtGui.QIcon(persp_data["icon"])
-            tip = persp_data["tooltip"]
+            tooltip = persp_data["tooltip"]
             action = Action(label, parent=self, icon=icon, tooltip=tooltip,
                             triggered=self.onSwitchPerspective)
             action.perspective = persp

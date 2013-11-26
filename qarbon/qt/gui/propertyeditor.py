@@ -27,9 +27,9 @@ Example::
 
 __all__ = ["PropertyEditor"]
 
-import logging
 import weakref
 
+from qarbon import log
 from qarbon.external.qt import QtCore, QtGui
 from qarbon.qt.gui.ui.uipropertyeditor import Ui_propertyEditor
 
@@ -147,7 +147,8 @@ class PropertyEditor(QtGui.QWidget):
                 propItem.setFlags(propItem.flags() | QtCore.Qt.ItemIsEditable)
                 propItem.setData(2, QtCore.Qt.UserRole, prop_name)
                 propItem.setData(2, QtCore.Qt.DisplayRole, value)
-                propItem.setToolTip(2, getPropertyValueToolTip(metaProp, value))
+                propItem.setToolTip(2, getPropertyValueToolTip(metaProp,
+                                                               value))
 
         propTree.expandToDepth(1)
         propTree.headerItem()
@@ -160,8 +161,8 @@ class PropertyEditor(QtGui.QWidget):
             return
         qobject = self.qobject
         if qobject is None:
-            logging.warning("qobject disappeared while trying "
-                            "to set a property on it")
+            log.warning("qobject disappeared while trying to set a property " \
+                        "on it")
             return
         prop_name = item.data(column, QtCore.Qt.UserRole)
         prop_value = item.data(column, QtCore.Qt.DisplayRole)
@@ -170,8 +171,8 @@ class PropertyEditor(QtGui.QWidget):
     def __onFocus(self):
         qwidget = self.qobject
         if qwidget is None:
-            logging.warning("widget disappeared while trying "
-                            "to set a property on it")
+            log.warning("widget disappeared while trying to set a property " \
+                        "on it")
             return
         #TODO: animate somehow
 

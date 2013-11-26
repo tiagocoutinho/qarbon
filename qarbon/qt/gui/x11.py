@@ -27,9 +27,9 @@ Example::
 __all__ = ["XEmbedCommandWidget", "XTermWidget",
            "XEmbedCommandWindow", "XTermWindow"]
 
-import logging
 import weakref
 
+from qarbon import log
 from qarbon.external.qt import QtCore, QtGui
 from qarbon.qt.gui.application import Application
 from qarbon.qt.gui.action import Action
@@ -44,7 +44,7 @@ class XEmbedCommandWidget(QtGui.QX11EmbedContainer):
         from qarbon.external.qt import QtGui
         from qarbon.qt.gui.application import Application
         from qarbon.qt.gui.x11 import XEmbedCommandWidget
-        
+
         app = Application()
         w = QtGui.QMainWindow()
         cmdWidget = XEmbedCommandWidget(parent=w)
@@ -61,14 +61,29 @@ class XEmbedCommandWidget(QtGui.QX11EmbedContainer):
     def __init__(self, parent=None):
         super(XEmbedCommandWidget, self).__init__(parent)
         self.error.connect(self.__onError)
-        self.__process = process = QtCore.QProcess(self)
+        self.__process = QtCore.QProcess(self)
         self.resetCommand()
         self.resetAutoRestart()
         self.resetWinIdParam()
         self.resetExtraParams()
 
     def __onError(self, error):
-        logging.error("XEmbedContainer: Error")
+        log.error("XEmbedContainer: Error")
+
+    def __convert_wait(self, wait):
+        if wait:
+            if wait < 0:
+                wait = -1
+            else:
+                wait = int(wait * 1000)
+        return wait
+
+    def __finish(self, finish_func, wait=0):
+        process = self.__process
+        wait = self.__convert_wait(wait)
+        finish_func()
+        if wait:
+            return process.waitForFinished(msecs=wait)
 
     def getProcess(self):
         return self.__process
@@ -101,7 +116,7 @@ class XEmbedCommandWidget(QtGui.QX11EmbedContainer):
         self.__extraParams = params
 
     def getExtraParams(self):
-        return self.__extraParams 
+        return self.__extraParams
 
     def resetExtraParams(self):
         self.setExtraParams(None)
@@ -122,14 +137,6 @@ class XEmbedCommandWidget(QtGui.QX11EmbedContainer):
     def getWorkingDirectory(self):
         return self.getProcess().workingDirectory()
 
-    def __convert_wait(self, wait):
-        if wait:
-            if wait < 0:
-                wait = -1
-            else:
-                wait = int(wait * 1000)
-        return wait
-
     def start(self, wait=0):
         """wait < 0 -> wait forever,
            wait == 0 -> not wait,
@@ -149,13 +156,6 @@ class XEmbedCommandWidget(QtGui.QX11EmbedContainer):
         self.terminate(wait=-1)
         return self.start(wait=wait)
 
-    def __finish(self, finish_func, wait=0):
-        process = self.__process
-        wait = self.__convert_wait(wait)
-        finish_func()
-        if wait:
-            return process.waitForFinished(msecs=wait)
-
     def kill(self, wait=0):
         return self.__finish(self.__process.kill, wait=wait)
 
@@ -170,15 +170,9 @@ class XEmbedCommandWidget(QtGui.QX11EmbedContainer):
                 self.terminate()
         elif etype == QtCore.QEvent.ParentChange:
             if self.autoRestart:
-                logging.info("restarting...")
+                log.info("X11CommandWidget: restarting...")
                 self.restart(wait=3)
         return ret
-
-    def destroy(self, *args, **kwargs):
-        print("Destroying embeded widget")        
-        logging.warning("Destroying embeded widget")
-        self.terminate(wait=-1)
-        return super(XEmbedCommandWidget, self).destroy(*args, **kwargs)
 
     command = QtCore.Property(str, getCommand, setCommand, resetCommand)
 
@@ -203,7 +197,7 @@ class XEmbedCommandWindow(QtGui.QMainWindow):
         from qarbon.external.qt import QtGui
         from qarbon.qt.gui.application import Application
         from qarbon.qt.gui.x11 import XEmbedCommandWindow
-        
+
         app = Application()
         w = XEmbedCommandWindow()
         w.command = 'xterm'
@@ -241,11 +235,11 @@ class XEmbedCommandWindow(QtGui.QMainWindow):
         self.XWidget().terminate(wait=wait)
 
     def getCommand(self):
-        return XWidget().command
-    
+        return self.XWidget().command
+
     def setCommand(self, command):
         self.XWidget().command = command
-    
+
     def resetCommand(self):
         self.XWidget().resetCommand()
 
@@ -262,7 +256,7 @@ class XEmbedCommandWindow(QtGui.QMainWindow):
         self.XWidget().extraParams = params
 
     def getExtraParams(self):
-        return self.XWidget().extraParams 
+        return self.XWidget().extraParams
 
     def resetExtraParams(self):
         self.XWidget().resetExtraParams()
@@ -282,11 +276,6 @@ class XEmbedCommandWindow(QtGui.QMainWindow):
     def getWorkingDirectory(self):
         return self.XWidget().workingDirectory
 
-    def destroy(self, *args, **kwargs):
-        logging.warning("Destroying embeded window")
-        self.terminate(wait=-1)
-        return super(XEmbedCommandWindow, self).destroy(*args, **kwargs)
-
     command = QtCore.Property(str, getCommand, setCommand, resetCommand)
 
     winIdParam = QtCore.Property(str, getWinIdParam, setWinIdParam,
@@ -304,7 +293,7 @@ class XEmbedCommandWindow(QtGui.QMainWindow):
 
 class XTermWidget(XEmbedCommandWidget):
     """A widget with an xterm console inside.
-    
+
     Example::
 
         from qarbon.external.qt import QtGui
@@ -314,6 +303,7 @@ class XTermWidget(XEmbedCommandWidget):
         app = Application()
         w = QtGui.QMainWindow()
         term = XTermWidget(parent=w)
+        term.extraParams = ["-e", "python"]
         w.setCentralWidget(term)
         w.start()
         w.show()
@@ -346,10 +336,10 @@ class XTermWindow(XEmbedCommandWindow):
 
 
 def main():
-    logging.basicConfig(level=logging.DEBUG)
+    log.initialize(log_level='debug')
     app = Application()
-    w = XTermWidget()
-#    w.extraParams = ["-e", "spec"]
+    w = XTermWindow()
+    w.extraParams = ["-e", "python"]
     w.start()
     w.show()
     app.exec_()

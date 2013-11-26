@@ -16,6 +16,7 @@ import os
 import sys
 import collections
 
+
 __str_klasses = [str]
 __seq_klasses = [collections.Sequence, bytearray]
 
@@ -52,8 +53,8 @@ def isSequence(obj, inc_string=False):
 
     :param obj: the object to be analysed
     :type obj: object
-    :param inc_string: if False, exclude str objects from the list of possible
-                       sequence objects
+    :param inc_string: if False, exclude str/unicode objects from the list
+                       of possible sequence objects
     :type inc_string: bool
     :return: True if the given object is a sequence or False otherwise
     :rtype: bool"""

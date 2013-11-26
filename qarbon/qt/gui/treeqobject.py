@@ -49,9 +49,9 @@ Example::
 __all__ = ["QObjectRepresentation", "getQObjectTree", "getQObjectTreeStr",
            "TreeQObjectInfoModel", "TreeQObjectWidget"]
 
-import logging
 import weakref
 
+from qarbon import log
 from qarbon.external.enum import Enum
 from qarbon.external.qt import QtCore, QtGui
 
@@ -141,8 +141,8 @@ def _getQObjectStr(qobject, representation):
     try:
         objectName = qobject.objectName()
     except RuntimeError:
-        logging.error("error accessing object %s", qobject)
-        logging.debug("details: ", exc_info=1)
+        log.error("error accessing object %s", qobject)
+        log.debug("details: ", exc_info=1)
         if representation == QObjectRepresentation.ClassName:
             return qobject.__class__.__name__
         else:
