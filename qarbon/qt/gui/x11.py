@@ -36,7 +36,7 @@ from qarbon.qt.gui.action import Action
 from qarbon.qt.gui.icon import Icon
 
 
-class XEmbedCommandWidget(QtGui.QX11EmbedContainer):
+class XEmbedCommandWidget(QtGui.QWidget):
     """A widget displaying an X11 window inside from a command.
 
     Example::
@@ -60,8 +60,13 @@ class XEmbedCommandWidget(QtGui.QX11EmbedContainer):
 
     def __init__(self, parent=None):
         super(XEmbedCommandWidget, self).__init__(parent)
-        self.error.connect(self.__onError)
         self.__process = QtCore.QProcess(self)
+        self.__x11_widget = x11_widget = QtGui.QX11EmbedContainer(self)
+        layout = QtGui.QVBoxLayout(self)
+        layout.setMargin(0)
+        layout.setSpacing(0)
+        layout.addWidget(x11_widget)
+        x11_widget.error.connect(self.__onError)
         self.resetCommand()
         self.resetAutoRestart()
         self.resetWinIdParam()
@@ -84,6 +89,12 @@ class XEmbedCommandWidget(QtGui.QX11EmbedContainer):
         finish_func()
         if wait:
             return process.waitForFinished(msecs=wait)
+
+    def getX11WinId(self):
+        return self.getX11Widget().winId()
+
+    def getX11Widget(self):
+        return self.__x11_widget
 
     def getProcess(self):
         return self.__process
@@ -146,7 +157,8 @@ class XEmbedCommandWidget(QtGui.QX11EmbedContainer):
         if self.__winIdParam is None:
             raise Exception("Cannot start: no winIdParam")
         process = self.__process
-        params = [self.__winIdParam, str(self.winId())] + self.__extraParams
+        params = [self.__winIdParam, str(self.getX11WinId())] + \
+                 self.__extraParams
         process.start(self.__command, params)
         wait = self.__convert_wait(wait)
         if wait:
@@ -162,17 +174,20 @@ class XEmbedCommandWidget(QtGui.QX11EmbedContainer):
     def terminate(self, wait=0):
         return self.__finish(self.__process.terminate, wait=wait)
 
-    def event(self, event):
-        ret = super(XEmbedCommandWidget, self).event(event)
-        etype = event.type()
-        if etype == QtCore.QEvent.ParentAboutToChange:
-            if self.__process.state() != QtCore.QProcess.NotRunning:
-                self.terminate()
-        elif etype == QtCore.QEvent.ParentChange:
-            if self.autoRestart:
-                log.info("X11CommandWidget: restarting...")
-                self.restart(wait=3)
-        return ret
+    def __del__(self):
+        import sip
+        if not sip.isdeleted(self.__process):
+            log.debug("X11CommandWidget: __del__...")
+            self.terminate(wait=-1)
+
+    def deleteLater(self):
+        self.terminate(wait=-1)
+        return super(XEmbedCommandWidget, self).deleteLater()
+
+#    def closeEvent(self, event):
+#        log.info("X11CommandWidget: closeEvent...")
+#        self.terminate()
+#        return super(XEmbedCommandWidget, self).closeEvent(event)
 
     command = QtCore.Property(str, getCommand, setCommand, resetCommand)
 
@@ -338,11 +353,13 @@ class XTermWindow(XEmbedCommandWindow):
 def main():
     log.initialize(log_level='debug')
     app = Application()
+    log.info("starting main...")
     w = XTermWindow()
     w.extraParams = ["-e", "python"]
     w.start()
     w.show()
     app.exec_()
+
 
 if __name__ == "__main__":
     main()

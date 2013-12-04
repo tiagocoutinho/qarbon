@@ -10,6 +10,7 @@
 
 """This module exposes PyQt4/PSide uic module"""
 
+from qarbon import log
 from qarbon.external.qt import getQt
 
 __backend = getQt().__name__
@@ -51,12 +52,10 @@ elif __backend == 'PyQt5':
         return newWidget
 
 elif __backend == 'PySide':
-    import logging
     from PySide import QtCore as __QtCore
     from PySide import QtUiTools as __QtUiTools
 
     __uiLoader = None
-    __logger = logging.getLogger('Qt')
     class UiLoader(__QtUiTools.QUiLoader):
         def __init__(self):
             super(UiLoader, self).__init__()
@@ -72,16 +71,16 @@ elif __backend == 'PySide':
                 elif not hasattr(self._rootWidget, name):
                     setattr(self._rootWidget, name, widget)
                 else:
-                    __logger.error("Name collision! Ignoring second "
-                                   "occurrance of %r.", name)
+                    log.error("Qt: Name collision! Ignoring second "
+                              "occurrance of %r.", name)
 
                 if parent is not None:
                     setattr(parent, name, widget)
                 else:
                     # Sadly, we can't reparent it to self, since QUiLoader
                     # isn't a QWidget.
-                    __logger.error("No parent specified! This will probably "
-                                   "crash due to C++ object deletion.")
+                    log.error("Qt: No parent specified! This will probably "
+                              "crash due to C++ object deletion.")
 
             return widget
 
@@ -92,7 +91,7 @@ elif __backend == 'PySide':
             widget = super(UiLoader, self).load(fileOrName, parentWidget)
 
             if widget != self._rootWidget:
-                __logger.error("Returned widget isn't the root widget... ")
+                log.error("Qt: Returned widget isn't the root widget... ")
 
             self._rootWidget = None
             return widget
@@ -104,14 +103,14 @@ elif __backend == 'PySide':
 
         uiFile = __QtCore.QFile(uiFilename, parent)
         if not uiFile.open(__QtCore.QIODevice.ReadOnly):
-            __logger.error("Couldn't open file %r!", uiFilename)
+            log.error("Qt: Couldn't open file %r!", uiFilename)
             return None
 
         try:
             return __uiLoader.load(uiFile, parent)
 
         except:
-            __logger.exception("Exception loading UI from %r!", uiFilename)
+            log.exception("Exception loading UI from %r!", uiFilename)
 
         finally:
             uiFile.close()

@@ -10,8 +10,7 @@
 
 """A LED (light-emitting diode) widget.
 
-This widget represents a led. The led has a color, an status (On/Off) and
-blink (No, Slow, Medium Fast).
+This widget represents a led. The led has a color and a status (On/Off).
 
 Here is an example showing how to display all possible combinations of color,
 status::

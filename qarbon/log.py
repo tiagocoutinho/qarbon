@@ -10,7 +10,9 @@
 
 """Helper logging functions."""
 
-__all__ = []
+__all__ = ["log", "debug", "info", "warn", "warning", "error", "exception",
+           "fatal", "critical", "initialize", "is_initialized",
+           "log_it", "debug_it", "info_it", "warn_it", "error_it", "fatal_it"]
 
 import sys
 import inspect
@@ -22,22 +24,55 @@ import functools
 from qarbon import config
 from qarbon.util import isString
 
-
 __logging_initialized = False
 
 
-log = logging.log
-debug = logging.debug
-info = logging.info
-warn = logging.warn
-warning = logging.warning
-error = logging.error
-critical = logging.critical
+def log(level, msg, *args, **kwargs):
+#    if not __logging_initialized:
+#        initialize()
+    logging.log(level, msg, *args, **kwargs)
 
 
-def initialize(log_level=config.LOG_LEVEL, log_format=config.LOG_FORMAT,
-                file_name=None, file_size=config.LOG_FILE_SIZE,
-                file_number=config.LOG_FILE_NUMBER, stream=None):
+def debug(msg, *args, **kwargs):
+    log(logging.DEBUG, msg, *args, **kwargs)
+
+
+def info(msg, *args, **kwargs):
+    log(logging.INFO, msg, *args, **kwargs)
+
+
+def warn(msg, *args, **kwargs):
+    log(logging.WARN, msg, *args, **kwargs)
+
+
+def warning(msg, *args, **kwargs):
+    log(logging.WARNING, msg, *args, **kwargs)
+
+
+def error(msg, *args, **kwargs):
+    log(logging.ERROR, msg, *args, **kwargs)
+
+
+def exception(msg, *args, **kwargs):
+    if 'exc_info' not in kwargs:
+        kwargs['exc_info'] = 1
+    error(msg, *args, **kwargs)
+
+
+def fatal(msg, *args, **kwargs):
+    log(logging.FATAL, msg, *args, **kwargs)
+
+
+def critical(msg, *args, **kwargs):
+    log(logging.CRITICAL, msg, *args, **kwargs)
+
+
+def is_initialized():
+    return __logging_initialized
+
+
+def initialize(log_level=None, log_format=None, stream=None,
+               file_name=None, file_size=None, file_number=None):
     """Initializes logging. Configures the Root logger with the given
     log_level. If file_name is given, a rotating log file handler is added.
     Otherwise, adds a default output stream handler with the given
@@ -45,17 +80,29 @@ def initialize(log_level=config.LOG_LEVEL, log_format=config.LOG_FORMAT,
 
     global __logging_initialized
 
-    root = logging.getLogger()
-
     if __logging_initialized:
         return
 
-    if file_name:
-        __set_log_file(file_name, file_size=file_size, file_number=file_number,
-                       log_format=log_format)
+    root = logging.getLogger()
+    if log_level is None:
+        log_level = config.LOG_LEVEL
+    if log_format is None:
+        log_format = config.LOG_FORMAT
+    if file_name is None:
+        file_name = config.LOG_FILE_NAME
+    if file_size is None:
+        file_size = config.LOG_FILE_SIZE
+    if file_number is None:
+        file_number = config.LOG_FILE_NUMBER
+    if stream is None:
+        stream = config.LOG_STREAM
 
-    if stream:
-        __set_log_stream(log_format=log_format)
+    for handler in set(root.handlers):
+        root.removeHandler(handler)
+
+    __set_log_file(file_name, file_size, file_number, log_format)
+
+    __set_log_stream(stream, log_format)
 
     if isString(log_level):
         log_level = log_level.upper()
@@ -72,7 +119,7 @@ def initialize(log_level=config.LOG_LEVEL, log_format=config.LOG_FORMAT,
     __logging_initialized = True
 
 
-def __config_handler(handler, log_format=config.LOG_FORMAT):
+def __config_handler(handler, log_format):
     root = logging.getLogger()
 
     formatter = logging.Formatter(log_format)
@@ -80,17 +127,17 @@ def __config_handler(handler, log_format=config.LOG_FORMAT):
     root.addHandler(handler)
 
 
-def __set_log_stream(stream=sys.stderr, log_format=config.LOG_FORMAT):
-    out_handler = logging.StreamHandler(stream)
-    __config_handler(out_handler, log_format=log_format)
+def __set_log_stream(stream, log_format):
+    if stream and log_format:
+        out_handler = logging.StreamHandler(stream)
+        __config_handler(out_handler, log_format)
 
 
-def __set_log_file(file_name, file_size=config.LOG_FILE_SIZE,
-                   file_number=config.LOG_FILE_NUMBER,
-                   log_format=config.LOG_FORMAT):
-    file_handler = logging.handlers.RotatingFileHandler(file_name, 'a',
+def __set_log_file(file_name, file_size, file_number, log_format):
+    if file_name and file_size and file_number and log_format:
+        file_handler = logging.handlers.RotatingFileHandler(file_name, 'a',
                                                         file_size, file_number)
-    __config_handler(file_handler, log_format=log_format)
+        __config_handler(file_handler, log_format)
 
 
 def __log_it(obj=None, **kwargs):

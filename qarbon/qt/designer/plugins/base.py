@@ -14,8 +14,8 @@ qarbon and QtDesigner"""
 __all__ = ["DesignerBaseWidgetPlugin", "DesignerBaseContainerExtension"]
 
 import inspect
-import logging
 
+from qarbon import log
 from qarbon.external.qt import QtGui, QtDesigner
 from qarbon.qt.gui.icon import getIcon
 from qarbon.qt.designer.plugins.factory import ExtensionType, \
@@ -39,8 +39,8 @@ class DesignerBaseWidgetPlugin(QtDesigner.QPyDesignerCustomWidgetPlugin):
             return
 
         if self.isContainer():
-            logging.debug("[start] registering container extension for %s...",
-                          self.name())
+            log.debug("[start] registering container extension for %s...",
+                      self.name())
             container_extension = self.getContainerExtensionClass()
             registerExtension(ExtensionType.ContainerExtension,
                               self.getWidgetClass(),
@@ -50,8 +50,8 @@ class DesignerBaseWidgetPlugin(QtDesigner.QPyDesignerCustomWidgetPlugin):
             self.__extension_factory = QarbonWidgetExtensionFactory(manager)
             manager.registerExtensions(self.__extension_factory,
                                        ExtensionType.ContainerExtension.value)
-            logging.debug("[ done] registering container extension for %s",
-                          self.name())
+            log.debug("[ done] registering container extension for %s",
+                      self.name())
 
         self.__initialized = True
 
@@ -68,9 +68,9 @@ class DesignerBaseWidgetPlugin(QtDesigner.QPyDesignerCustomWidgetPlugin):
         try:
             w = self.getWidgetClass()(parent=parent)
         except Exception:
-            logging.error("Designer plugin error creating %s " \
-                          "(see debug stream for details)", self.name())
-            logging.debug("Details:", exc_info=1)
+            log.error("Designer plugin error creating %s " \
+                      "(see debug stream for details)", self.name())
+            log.debug("Details:", exc_info=1)
             w = None
         return w
 
