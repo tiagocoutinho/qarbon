@@ -512,7 +512,7 @@ class Axis(QtCore.QObject):
     def stop(self):
         self.axes.abort(self.name)
 
-    ToolTipTemplate = """<html>axis <u>{axis.label}</u> is in 
+    ToolTipTemplate = """<html>axis <u>{axis.label}</u> is in \
 <b>{axis.state.name}</b> state, at position <b>{axis.position}</b><br/>
 Limits set to <b>[{axis.limits[0]}, {axis.limits[1]}]</b><br/>
 (the hardware name for this axis is: <i>{axis.name}</i>)"""
@@ -865,10 +865,10 @@ def main():
 
         def move(self, name, v):
             self.get(name)[1] = v
-        
+
         def abort(self, name):
             pass
-            
+
     p = QtGui.QWidget()
     layout = QtGui.QVBoxLayout()
     p.setLayout(layout)

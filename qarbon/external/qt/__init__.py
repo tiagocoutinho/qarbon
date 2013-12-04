@@ -15,7 +15,6 @@ __all__ = ["initialize", "getQtName", "getQt"]
 import os
 import imp
 import sys
-import logging
 import warnings
 
 try:
@@ -24,6 +23,10 @@ except ImportError:
     sip = None
 
 import qarbon.config
+
+from qarbon import log
+from qarbon.util import moduleDirectory
+
 
 __QT = None
 __QT_NAME = None
@@ -58,24 +61,22 @@ def __initialize_logging():
     QtCore = __importQt("QtCore")
 
     QT_LEVEL_MATCHER = {
-        QtCore.QtDebugMsg:     "debug",
-        QtCore.QtWarningMsg:   "warning",
-        QtCore.QtCriticalMsg:  "critical",
-        QtCore.QtFatalMsg:     "fatal",
-        QtCore.QtSystemMsg:    "critical",
+        QtCore.QtDebugMsg:     log.debug,
+        QtCore.QtWarningMsg:   log.warning,
+        QtCore.QtCriticalMsg:  log.critical,
+        QtCore.QtFatalMsg:     log.fatal,
+        QtCore.QtSystemMsg:    log.critical,
     }
 
     if hasattr(QtCore, "qInstallMessageHandler"):
         def qarbonMessageHandler(msg_type, log_ctx, msg):
-            fname = QT_LEVEL_MATCHER.get(msg_type)
-            f = getattr(logging, fname)
+            f = QT_LEVEL_MATCHER.get(msg_type)
             return f("Qt%s %s.%s[%s]: %a", log_ctx.category, log_ctx.file,
                      log_ctx.function, log_ctx.line, msg)
         QtCore.qInstallMessageHandler(qarbonMessageHandler)
     elif hasattr(QtCore, "qInstallMsgHandler"):
         def qarbonMsgHandler(msg_type, msg):
-            fname = QT_LEVEL_MATCHER.get(msg_type)
-            f = getattr(logging, fname)
+            f = QT_LEVEL_MATCHER.get(msg_type)
             return f("Qt: " + msg)
         QtCore.qInstallMsgHandler(qarbonMsgHandler)
 
@@ -111,15 +112,15 @@ def __setPyQt4API(element, api_version=2):
     if ver < 0:
         try:
             sip.setapi(element, api_version)
-            logging.debug("%s API set to version %d",
-                          element, sip.getapi("QString"))
+            log.debug("%s API set to version %d",
+                      element, sip.getapi("QString"))
         except ValueError:
-            logging.warning("Error setting %s API to version %s", element,
-                            api_version, exc_info=1)
+            log.warning("Error setting %s API to version %s", element,
+                        api_version, exc_info=1)
             return False
     elif ver < api_version:
-        logging.info("%s API set to version %s (advised: version >= %s)",
-                     element, ver, api_version)
+        log.info("%s API set to version %s (advised: version >= %s)",
+                 element, ver, api_version)
     return True
 
 
@@ -134,10 +135,10 @@ def __preparePyQt4():
     # automatically converts QStrings to Unicode Python strings. Also,
     # automatically unpack QVariants to their underlying objects.
     if sip is None:
-        logging.warning("Could not find sip")
+        log.warning("Could not find sip")
     elif sip.SIP_VERSION < 0x040900:
         sip_ver = sip.SIP_VERSION_STR
-        logging.warning("Using old sip %s (advised >= 4.9)", sip_ver)
+        log.warning("Using old sip %s (advised >= 4.9)", sip_ver)
     else:
         __setPyQt4API("QString", 2)
         __setPyQt4API("QVariant", 2)

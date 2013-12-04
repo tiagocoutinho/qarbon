@@ -15,10 +15,10 @@ will generate plugin classes, one for each *Qt Designer enabled* qarbon
 widget."""
 
 import os
-import logging
 import collections
 
 import qarbon
+from qarbon import log
 from qarbon.util import moduleDirectory
 from qarbon.qt.gui.util import getWidgetClasses
 
@@ -59,15 +59,15 @@ def getPlugins():
         try:
             widgets.update(getWidgetClasses(modulename))
         except ImportError:
-            logging.warning("Error importing %s", modulename)
+            log.warning("Error importing %s", modulename)
 
     for _, widget_info in widgets.items():
         widget_klass = widget_info["klass"]
         widget_name = widget_info['name']
         info_func = getattr(widget_klass, "getQtDesignerPluginInfo", None)
         if info_func is None:
-            logging.debug("widget '%s' has no 'getQtDesignerPluginInfo'",
-                          widget_name)
+            log.debug("widget '%s' has no 'getQtDesignerPluginInfo'",
+                      widget_name)
             continue
         info = info_func()
         if isinstance(info, collections.Mapping):
@@ -77,14 +77,10 @@ def getPlugins():
             plugins[plugin_klass_name] = plugin_klass
     return plugins
 
-def main():
-    try:
-        level = os.environ["QARBON_DESIGNER_LOG_LEVEL"]
-        level = getattr(logging, level.upper())
-    except:
-        level = logging.WARNING
-    logging.getLogger().setLevel(level)
 
+def main():
+    level = os.environ.get("QARBON_DESIGNER_LOG_LEVEL", "WARNING")
+    log.initialize(log_level=level)
     plugins = getPlugins()
     globals().update(plugins)
 

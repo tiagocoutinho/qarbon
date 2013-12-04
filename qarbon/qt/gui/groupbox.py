@@ -306,7 +306,8 @@ class GroupBox(QtGui.QWidget):
 
     @classmethod
     def getQtDesignerPluginInfo(cls):
-        from qarbon.qt.designer.plugins.base import DesignerBaseSingleContainerExtension
+        from qarbon.qt.designer.plugins.base import \
+            DesignerBaseSingleContainerExtension
         return dict(icon=":/designer/groupwidget.png", container=True,
                     container_extension=DesignerBaseSingleContainerExtension)
 
