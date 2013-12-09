@@ -24,8 +24,8 @@ Example::
     term.show()
     app.exec_()"""
 
-__all__ = ["XEmbedCommandWidget", "XTermWidget",
-           "XEmbedCommandWindow", "XTermWindow"]
+__all__ = ["XCommandWidget", "XTermWidget",
+           "XCommandWindow", "XTermWindow"]
 
 import weakref
 
@@ -36,18 +36,18 @@ from qarbon.qt.gui.action import Action
 from qarbon.qt.gui.icon import Icon
 
 
-class XEmbedCommandWidget(QtGui.QWidget):
+class XCommandWidget(QtGui.QWidget):
     """A widget displaying an X11 window inside from a command.
 
     Example::
 
         from qarbon.external.qt import QtGui
         from qarbon.qt.gui.application import Application
-        from qarbon.qt.gui.x11 import XEmbedCommandWidget
+        from qarbon.qt.gui.x11 import XCommandWidget
 
         app = Application()
         w = QtGui.QMainWindow()
-        cmdWidget = XEmbedCommandWidget(parent=w)
+        cmdWidget = XCommandWidget(parent=w)
         cmdWidget.command = 'xterm'
         cmdWidget.winIdParam = '-into'
         cmdWidget.start()
@@ -59,7 +59,7 @@ class XEmbedCommandWidget(QtGui.QWidget):
     DefaultWinIdParam = '-into'
 
     def __init__(self, parent=None):
-        super(XEmbedCommandWidget, self).__init__(parent)
+        super(XCommandWidget, self).__init__(parent)
         self.__process = QtCore.QProcess(self)
         self.__x11_widget = x11_widget = QtGui.QX11EmbedContainer(self)
         layout = QtGui.QVBoxLayout(self)
@@ -177,17 +177,20 @@ class XEmbedCommandWidget(QtGui.QWidget):
     def __del__(self):
         import sip
         if not sip.isdeleted(self.__process):
-            log.debug("X11CommandWidget: __del__...")
-            self.terminate(wait=-1)
+            log.debug("X11CommandWidget: __del__ terminates x11...")
+            self.terminate()
+        else:
+            log.debug("X11CommandWidget: __del__ does nothing...")
 
     def deleteLater(self):
+        log.debug("X11CommandWidget: deleteLater...")
         self.terminate(wait=-1)
-        return super(XEmbedCommandWidget, self).deleteLater()
+        return super(XCommandWidget, self).deleteLater()
 
-#    def closeEvent(self, event):
-#        log.info("X11CommandWidget: closeEvent...")
-#        self.terminate()
-#        return super(XEmbedCommandWidget, self).closeEvent(event)
+    @classmethod
+    def getQtDesignerPluginInfo(cls):
+        return dict(icon=":/designer/xorg.png",
+                    tooltip="XTerm widget")
 
     command = QtCore.Property(str, getCommand, setCommand, resetCommand)
 
@@ -204,29 +207,29 @@ class XEmbedCommandWidget(QtGui.QWidget):
                                        setWorkingDirectory)
 
 
-class XEmbedCommandWindow(QtGui.QMainWindow):
-    """The QMainWindow version of :class:`XEmbedCommandWidget`.
+class XCommandWindow(QtGui.QMainWindow):
+    """The QMainWindow version of :class:`XCommandWidget`.
 
     Example::
 
         from qarbon.external.qt import QtGui
         from qarbon.qt.gui.application import Application
-        from qarbon.qt.gui.x11 import XEmbedCommandWindow
+        from qarbon.qt.gui.x11 import XCommandWindow
 
         app = Application()
-        w = XEmbedCommandWindow()
+        w = XCommandWindow()
         w.command = 'xterm'
         w.winIdParam = '-into'
         w.start()
         w.show()
         app.exec_()"""
 
-    Widget = XEmbedCommandWidget
+    Widget = XCommandWidget
 
     def __init__(self, **kwargs):
         parent = kwargs.pop('parent', None)
         flags = kwargs.pop('flags', QtCore.Qt.WindowFlags())
-        super(XEmbedCommandWindow, self).__init__(parent=parent, flags=flags)
+        super(XCommandWindow, self).__init__(parent=parent, flags=flags)
         x11 = self.Widget(parent=self, **kwargs)
         self.setCentralWidget(x11)
         toolBar = self.addToolBar("Actions")
@@ -306,7 +309,7 @@ class XEmbedCommandWindow(QtGui.QMainWindow):
                                        setWorkingDirectory)
 
 
-class XTermWidget(XEmbedCommandWidget):
+class XTermWidget(XCommandWidget):
     """A widget with an xterm console inside.
 
     Example::
@@ -333,8 +336,13 @@ class XTermWidget(XEmbedCommandWidget):
     def sizeHint(self):
         return QtCore.QSize(800, 600)
 
+    @classmethod
+    def getQtDesignerPluginInfo(cls):
+        return dict(icon=":/designer/xterm.png",
+                    tooltip="XTerm widget")
 
-class XTermWindow(XEmbedCommandWindow):
+
+class XTermWindow(XCommandWindow):
     """The QMainWindow version of :class:`XTermWidget`
 
         from qarbon.external.qt import QtGui
@@ -353,9 +361,8 @@ class XTermWindow(XEmbedCommandWindow):
 def main():
     log.initialize(log_level='debug')
     app = Application()
-    log.info("starting main...")
     w = XTermWindow()
-    w.extraParams = ["-e", "python"]
+    w.extraParams = ["-e", "ipython"]
     w.start()
     w.show()
     app.exec_()

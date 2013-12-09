@@ -10,7 +10,7 @@
 
 """Helper module for Qt Designer.
 
-It is supposed to be imported by Qt Designer python plugin. At that time it 
+It is supposed to be imported by Qt Designer python plugin. At that time it
 will generate plugin classes, one for each *Qt Designer enabled* qarbon
 widget."""
 
@@ -66,8 +66,6 @@ def getPlugins():
         widget_name = widget_info['name']
         info_func = getattr(widget_klass, "getQtDesignerPluginInfo", None)
         if info_func is None:
-            log.debug("widget '%s' has no 'getQtDesignerPluginInfo'",
-                      widget_name)
             continue
         info = info_func()
         if isinstance(info, collections.Mapping):
