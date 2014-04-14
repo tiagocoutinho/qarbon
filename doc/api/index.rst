@@ -16,6 +16,7 @@ qarbon
 
     qarbon.color
     qarbon.config
+    qarbon.executor
     qarbon.meta
     qarbon.release
     qarbon.util

@@ -179,7 +179,10 @@ def __log_it(obj=None, **kwargs):
     # determine the log object
     log_obj = kwargs.get('logger', None)
     if log_obj is None:
-        log_obj = logging.getLogger(obj.__module__)
+        if inspect.ismethod(obj):
+            log_obj = logging.getLogger(obj.im_class.__name__)
+        else:
+            log_obj = logging.getLogger()
     elif isinstance(log_obj, str):
         log_obj = logging.getLogger(log_obj)
     elif isinstance(log_obj, logging.Logger):

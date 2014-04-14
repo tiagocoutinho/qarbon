@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # ----------------------------------------------------------------------------
 # This file is part of qarbon (http://qarbon.rtfd.org/)
 #
@@ -76,3 +77,16 @@ LOG_STREAM = DEFAULT_LOG_STREAM
 LOG_FILE_NAME = DEFAULT_LOG_FILE_NAME
 LOG_FILE_SIZE = DEFAULT_LOG_FILE_SIZE
 LOG_FILE_NUMBER = DEFAULT_LOG_FILE_NUMBER
+
+# ----------------------------------------------------------------------------
+# Paralelism
+# ----------------------------------------------------------------------------
+
+DEFAULT_EXECUTOR = 'thread' # possible values 'thread', 'process', 'gevent'
+
+DEFAULT_MAX_WORKERS = 10
+
+EXECUTOR = DEFAULT_EXECUTOR
+
+MAX_WORKERS = DEFAULT_MAX_WORKERS
+
