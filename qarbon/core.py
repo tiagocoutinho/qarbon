@@ -282,6 +282,10 @@ warning_range = {0.warning_range}
     def config(self):
         return self.__config
 
+    @config.setter
+    def config(self, cfg):
+        self.__config = cfg
+    
     @property
     def value(self):
         return self.r_value

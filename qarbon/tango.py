@@ -13,6 +13,7 @@
 
 from weakref import WeakValueDictionary
 from functools import partial
+from concurrent import futures
 
 import PyTango as Tango
 
@@ -204,13 +205,13 @@ class Device(_Device):
 
     def __init__(self, name):
         _Device.__init__(self, name)
-        self.__device = submit(Tango.DeviceProxy, name)
         self.__attr_value_cache = {}
         self.__attr_config_cache = {}
+        self.__device_future = submit(Tango.DeviceProxy, name)
 
     @property
     def hw_device(self):
-        return self.__device.result()   
+        return self.__device_future.result()   
 
     def __read_attribute_value(self, attr_name):
         attr_name = attr_name.lower()
@@ -218,42 +219,52 @@ class Device(_Device):
         try:
             attr_cfg = self.__attr_config_cache[attr_name]
         except KeyError:
-            attr_cfg = self.__read_attribute_configuration(attr_name)
+            attr_cfg = self.__read_attribute_config(attr_name)
         attr_value = attr_value_t2q(attr_cfg, tango_attr_value)
         return attr_value
 
-    def __read_attribute_configuration(self, attr_name):
+    def __read_attribute_config(self, attr_name):
         attr_name = attr_name.lower()
         tango_cfg = self.hw_device.get_attribute_config_ex(attr_name)[0]
         attr_cfg = attr_config_t2q(tango_cfg)
         return attr_cfg
 
-    def __get_attribute_value(self, attr_name):
-        attr_name = attr_name.lower()
-        attr_value = self.__attr_value_cache.get(attr_name)
-        if attr_value is None:
-            attr_value = self.__read_attribute(attr_name)
-        self.__attr_value_cache[attr_name] = attr_value
-        return attr_value
-
     def __run_command(self, cmd_name, *args, **kwargs):
         result = self.command_inout(cmd_name, *args, **kwargs)
         return result
 
+    def _set_attribute_value_cache(self, attr_name, value):
+        if isinstance(value, futures.Future):
+            value_f = value
+        else:
+            value_f = futures.Future()
+            value_f.set_result(value)
+        self.__attr_value_cache[attr_name] = value_f
+
+    def _set_attribute_config_cache(self, attr_name, config):
+        if isinstance(config, futures.Future):
+            config_f = config
+        else:
+            config_f = futures.Future()
+            config_f.set_result(config)
+        self.__attr_config_cache[attr_name] = config_f
+                                
     def get_state(self):
         return submit(self.hw_device.state)
 
     def read_attribute(self, attr_name):
+        """returns a Future of AttributeValue"""
         attr_value = submit(self.__read_attribute_value, attr_name)
-        self.__attr_value_cache[attr_name] = attr_value
+        self._set_attribute_value_cache(attr_name, attr_value)
         return attr_value
 
     def get_attribute_config(self, attr_name):
+        """returns a Future of AttributeConfig"""        
         attr_name = attr_name.lower()
         attr_cfg = self.__attr_config_cache.get(attr_name)
         if attr_cfg is None:
-            attr_cfg = submit(self.__read_attribute_configuration, attr_name)
-        self.__attr_config_cache[attr_name] = attr_cfg
+            attr_cfg = submit(self.__read_attribute_config, attr_name)
+            self._set_attribute_config_cache(attr_name, attr_cfg)
         return attr_cfg
 
     def get_attribute_value(self, attr_name):
@@ -261,7 +272,7 @@ class Device(_Device):
         attr_value = self.__attr_value_cache.get(attr_name)
         if attr_value is None:
             attr_value = self.read_attribute(attr_name)
-        self.__attr_value_cache[attr_name] = attr_value
+            self._set_attribute_value_cache(attr_name, attr_value)
         return attr_value
 
     def run_command(self, cmd_name, *args, **kwargs):
@@ -277,43 +288,53 @@ class Attribute(_Attribute):
 
     def __init__(self, device, name):
         _Attribute.__init__(self, device, name)
-        submit(self.__init)
+        self.__evt_ids_future = submit(self.__init_future)
 
-    def __init(self):
+    def __init_future(self):
         dev = self.device.hw_device
-        cfg = dev.get_attribute_config_ex(self.name)[0]
-        self.__config = attr_config_t2q(cfg)
-
         evt_type = Tango.EventType.ATTR_CONF_EVENT
         try:
-            dev.subscribe_event(self.name, evt_type, self.__onConfigEvent)
+            cfg_evt_id = dev.subscribe_event(self.name, evt_type, self.__onConfigEvent)
         except Tango.DevFailed:
-            dev.subscribe_event(self.name, evt_type, self.__onConfigEvent, True)
-
+            cfg_evt_id = dev.subscribe_event(self.name, evt_type, self.__onConfigEvent, [], True)
+            
         evt_type = Tango.EventType.CHANGE_EVENT
         try:
-            dev.subscribe_event(self.name, evt_type, self.__onChangeEvent)
+            ch_evt_id = dev.subscribe_event(self.name, evt_type, self.__onChangeEvent)
         except Tango.DevFailed:
-            dev.subscribe_event(self.name, evt_type, self.__onChangeEvent, True)
-    
-    @log.info_it
-    def __onChangeEvent(self, event_data):
-        attr_cfg = self.device.get_attribute_config(self.name)
-        attr_value = attr_value_t2q(attr_cfg.result(), event_data.attr_value)
-        self.valueChanged.emit(attr_value)
+            ch_evt_id = dev.subscribe_event(self.name, evt_type, self.__onChangeEvent, [], True)
+        return cfg_evt_id, ch_evt_id
 
-    @log.info_it
-    def __onConfigEvent(self, attr_cfg):
-        return        
-    
-        attr_value = self.device.get_attribute_value(self.name)
-        att_value = attr_value_t2q(attr_cfg, attr_value)
-        self.valueChanged.emit(attr_value)
+    def __del__(self):
+        for evt_id in self.__evt_ids_future.result():
+            self.device.hw_device.unsubscribe_event(evt_id)
+        
+    @log.debug_it
+    def __onChangeEvent(self, event_data):
+        attr_cfg_future = self.device.get_attribute_config(self.name)
+        if event_data.err:
+            log.error("error change event")
+        else:
+            attr_value = attr_value_t2q(attr_cfg_future.result(),
+                                        event_data.attr_value)
+            self.device._set_attribute_value_cache(self.name, attr_value)
+            self.valueChanged.emit()
+
+    @log.debug_it
+    def __onConfigEvent(self, event_data):
+        if event_data.err:
+            log.error("error config event")
+        else:
+            attr_value_future = self.device.get_attribute_value(self.name)
+            attr_config = attr_config_t2q(event_data.attr_conf)
+            self.device._set_attribute_config_cache(self.name, attr_config)
+            attr_value_future.result().config = attr_config
+            self.valueChanged.emit()
 
     def read(self):
         return self.device.read_attribute(self.name)
 
-    def write(self):
+    def write(self, value):
         pass
 
     def get_value(self):
@@ -343,18 +364,28 @@ class Factory(_Factory):
 
 
 def main():
-    from qarbon import config
-    config.EXECUTOR = "thread"
-    config.MAX_WORKERS = 5
-    log.initialize(log_level='debug')
+    import sys
+    import qarbon.log
+    import qarbon.config
+    
+    if len(sys.argv) > 1:
+        attr_name = sys.argv[1]
+        if '/' not in attr_name:
+            attr_name = 'sys/tg_test/1/' + attr_name
+    else:
+        attr_name = 'sys/tg_test/1/double_scalar'
+        
+    qarbon.config.EXECUTOR = "thread"
+    qarbon.config.MAX_WORKERS = 5
+    qarbon.log.initialize(log_level='debug')
+
     f = Factory()
-    state_attr = f.get_attribute('test/1/01/state')
-    state = state_attr.read().result()
-    print type(state), state, state.timestamp
-    print "{0}".format(state)
+    attr = f.get_attribute(attr_name)
+    #attr_value = attr.read().result()
+    #print(attr_value, attr_value.timestamp, "{0}".format(attr_value))
 
     import time
-    time.sleep(5)
+    time.sleep(22)
 
 if __name__ == "__main__":
     main()
