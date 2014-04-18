@@ -14,7 +14,6 @@ __all__ = ["log", "debug", "info", "warn", "warning", "error", "exception",
            "fatal", "critical", "initialize", "is_initialized",
            "log_it", "debug_it", "info_it", "warn_it", "error_it", "fatal_it"]
 
-import sys
 import inspect
 import logging
 import warnings
