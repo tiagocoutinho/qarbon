@@ -11,7 +11,7 @@
 
 """Executor."""
 
-__all__ = ["Executor", "submit", "map", "shutdown"]
+__all__ = ["Executor", "submit", "task", "map", "shutdown"]
 
 import sys
 from concurrent import futures
@@ -95,6 +95,8 @@ def Executor():
 def submit(fn, *args, **kwargs):
     return Executor().submit(fn, *args, **kwargs)
 submit.__doc__ = futures.Executor.submit.__doc__
+
+task = submit
 
 def wait(fs, timeout=None, return_when=futures.ALL_COMPLETED):
     return futures.wait(fs, timeout=timeout, return_when=return_when)
