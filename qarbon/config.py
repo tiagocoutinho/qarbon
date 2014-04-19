@@ -64,7 +64,7 @@ QT_AUTO_REMOVE_INPUTHOOK = DEFAULT_QT_AUTO_REMOVE_INPUTHOOK
 
 DEFAULT_LOG_LEVEL = 'WARNING'
 DEFAULT_LOG_FORMAT = \
-    '%(threadName)-14s %(levelname)-8s %(asctime)s %(name)s: %(message)s'
+    '%(threadName)-10s %(levelname)-8s %(asctime)s %(name)s: %(message)s'
 DEFAULT_LOG_STREAM = sys.stderr
 DEFAULT_LOG_FILE_NAME = None
 DEFAULT_LOG_FILE_SIZE = 10 * 1024 * 1024
