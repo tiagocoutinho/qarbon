@@ -27,9 +27,15 @@ __logging_initialized = False
 
 
 def log(level, msg, *args, **kwargs):
-#    if not __logging_initialized:
-#        initialize()
-    logging.log(level, msg, *args, **kwargs)
+    exc_info = kwargs.get('exc_info')
+    if exc_info is not None and isString(exc_info):
+        kwargs.pop('exc_info')
+        exc_info = exc_info.upper()
+        logging.log(level, msg, *args, **kwargs)
+        exc_level = getattr(logging, exc_info, level)
+        logging.log(exc_level, "Exception details:", exc_info=1)
+    else:    
+        logging.log(level, msg, *args, **kwargs)
 
 
 def debug(msg, *args, **kwargs):
