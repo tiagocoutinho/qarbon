@@ -10,10 +10,13 @@
 
 """Helper functions."""
 
-__all__ = ['isString', 'isSequence', 'moduleImport', 'moduleDirectory']
+__all__ = ['isString', 'isSequence', 'moduleImport', 'moduleDirectory',
+           'callable_weakref']
 
 import os
 import sys
+import inspect
+import weakref
 import collections
 
 
@@ -83,3 +86,61 @@ def moduleDirectory(module):
     :return: the directory where the module is located
     :rtype: str"""
     return os.path.dirname(os.path.abspath(module.__file__))
+
+
+class _MethodWeakref(object):
+    """This class represents a weak reference to a method of an object since
+    weak references to methods don't work by themselves"""
+    
+    def __init__(self, method, del_cb=None):
+        cb = del_cb and self.__on_deleted
+        self.__func = weakref.ref(method.im_func, cb) 
+        self.__obj = weakref.ref(method.im_self, cb)
+        if cb:
+            self.__del_cb = callable_weakref(del_cb)
+        self.__deleted = 0
+
+    def __on_deleted(self, obj):
+        if not self.__deleted:
+            del_cb = self.__del_cb()
+            if del_cb is not None:
+                del_cb(self)
+                self.__deleted = 1
+        
+    def __call__(self):
+        obj = self.__obj()
+        if obj is not None:
+            func = self.__func()
+            if func is not None:
+                return func.__get__(obj)
+
+    def __hash__(self):
+        return id(self)
+
+    def __cmp__(self, other):
+        if other.__class__ == self.__class__:
+            ret = cmp((self.__func, self.__obj),
+                      (other.__func, other.__obj))
+            return ret
+        return 1
+
+    def __repr__(self):
+        return '_MethodWeakRef()'
+        #obj, f_name = self.__obj(), self.__func().__name__
+        #return '_MethodWeakRef(obj={0}, func={1})'.format % (obj, f_name)
+
+
+def callable_weakref(obj, del_cb=None):
+    """This function returns a callable weak reference to a callable object. 
+    Object can be a callable object, a function or a method.
+    
+    :param object: a callable object
+    :type object: callable object
+    :param del_cb: calback function. Default is None meaning to callback.
+    :type del_cb: callable object or None
+    
+    :return: a weak reference for the given callable
+    :rtype: BoundMethodWeakref or weakref.ref"""
+    if inspect.ismethod(obj):
+        return _MethodWeakref(obj, del_cb)
+    return weakref.ref(obj, del_cb)
