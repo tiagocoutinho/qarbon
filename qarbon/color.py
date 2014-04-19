@@ -14,7 +14,7 @@ __all__ = ["getStateColorMap", "getColorFromState",
            "getCSSColorFromState",
            "getBgColorFromState", "getFgColorFromState"]
 
-from qarbon.meta import State
+from qarbon.core import State
 
 # color        R     G     B     A
 black = 0x00, 0x00, 0x00, 0xFF

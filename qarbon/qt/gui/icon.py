@@ -50,7 +50,7 @@ import os
 
 import qarbon
 from qarbon.config import NAMESPACE
-from qarbon.meta import State
+from qarbon.core import State
 from qarbon.util import isString
 from qarbon.external.qt import QtGui
 from qarbon.qt.gui.style import getStyle
@@ -350,10 +350,10 @@ __STATE_MAP = {
 
 
 def getStateIcon(state):
-    """Returns a QIcon for the given :class:`~qarbon.meta.State`.
+    """Returns a QIcon for the given :class:`~qarbon.core.State`.
 
     :param state: the state
-    :type state: :class:`~qarbon.meta.State`
+    :type state: :class:`~qarbon.core.State`
     :return: the QIcon corresponding to the given state. If the state doesn't
              have a corresponding QIcon, a QStyle.SP_MessageBoxInformation
              QIcon is returned

@@ -18,9 +18,12 @@ __all__ = ["Quality", "Access", "DisplayLevel", "DataAccess", "DataType",
 import abc
 import sys
 import weakref
+import datetime
 
-from qarbon.util import isString
 from qarbon.external.enum import Enum
+
+from . import log
+from .util import isString, callable_weakref
 
 _PY3 = sys.version_info[0] > 2
 
@@ -198,56 +201,21 @@ class AttributeValue(object):
 
     """
     
-    #: pint value
-    r_value = None
-    
-    #: datetime.datetime
-    r_timestamp = None     
-
-    #: Quality   
-    r_quality = Quality.Valid
-
-    #: int
-    r_ndim = None
-
-    #: pint value
-    w_value = None
-
-    #: sys.exc_info()
-    exc_info = None
-    
-    #: bool
-    error = False
-
-    def __init__(self, r_value=None, r_timestamp=None, 
-                 r_quality=Quality.Valid, w_value=None, exc_info=None,
+    def __init__(self, r_value=None, r_timestamp=None, r_ndim=None, 
+                 r_quality=None, w_value=None, exc_info=None,
                  config=None):
         self.__config= config        
         if r_timestamp is None:
             r_timestamp = datetime.datetime.now()
-        self.r_timestamp = r_timestamp     
+        self.__r_timestamp = r_timestamp     
+        self.__r_value = r_value
+        self.__r_ndim = r_ndim
+        self.__r_quality = r_quality
+        self.__w_value = w_value
+        self.__exc_info = exc_info
 
-        if r_value != AttributeValue.r_value:
-            self.r_value = r_value
-            try:
-                r_ndim = self.r_value.ndim
-            except AttributeError:
-                r_ndim = 0
-            if r_ndim != AttributeValue.r_ndim:
-                self.r_ndim = r_ndim
-
-        if r_quality != Quality.Valid:
-            self.r_quality = r_quality
-        
-        if w_value is not None:
-            self.w_value = w_value
-
-        if exc_info is not None:    
-            self.exc_info = exc_info
-            self.error = True
-
-    def __getattr__(self, name):
-        return getattr(self.__config, name)
+#    def __getattr__(self, name):
+#        return getattr(self.__config, name)
 
     def __str__(self):
         return "{0}".format(self.r_value)
@@ -287,29 +255,36 @@ warning_range = {0.warning_range}
         self.__config = cfg
     
     @property
+    def r_value(self):
+        return self.__r_value
+
+    @property
     def value(self):
         return self.r_value
 
     @property
+    def r_timestamp(self):
+        return self.__r_timestamp
+
+    @property
     def timestamp(self):
         return self.r_timestamp
+    
+    @property
+    def r_ndim(self):
+        return self.__r_ndim
 
     @property
     def ndim(self):
         return self.r_ndim
 
     @property
+    def r_quality(self):
+        return self.__r_quality
+
+    @property
     def quality(self):
         return self.r_quality
-
-    def isScalar(self):
-        return self.r_ndim == 0
-
-    def isSpectrum(self):
-        return self.r_ndim == 1
-
-    def isImage(self):
-        return self.r_ndim == 2
 
 
 class _Manager(object):
@@ -402,13 +377,93 @@ class Attribute(object):
 
 class Signal(object):
 
-    def connect(self, obj):
-        pass    
+    def __init__(self, *args, **kwargs):
+        self.__args = args
+        self.__name = kwargs.pop('name', '')
+        self.__slots = []
 
-    def disconnect(self, obj):
-        pass        
+    def __on_slot_deleted(self, slot_ref):
+        self.__disconnect(slot_ref)
+
+    def __disconnect(self, slot_ref):
+        try:
+            self.__slots.remove(slot_ref)
+            return True
+        except ValueError:
+            slot = slot_ref()
+            if slot is None:
+                log.debug("attempting to disconnect unbound slot")
+            else:
+                log.debug("slot '%s' is not connected to signal",
+                          slot.__name__)
+        except:
+            slot = slot_ref()
+            if slot is None:
+                log.error("Exception trying to disconnect unbound slot "
+                      "from signal", exc_info='debug')
+            else:
+                log.error("Exception trying to disconnect slot '%s' "
+                          "from signal", slot.__name__, exc_info='debug')
+
+        return False        
+
+    def __emit(self, slot, args, kwargs):
+        try:
+            slot(*args, **kwargs)
+        except:
+            sname = slot.__name__
+            log.error("Exception emitting signal to slot '%s'",
+                      sname, exc_info='debug')
+
+    # -- API ------------------------------------------------------------------
+    
+    def slots(self):
+        """Returns the list of connected slots"""
+        slots, all_slots = [], self.__slots
+        for slot in all_slots:
+            slot = slot()
+            if slot is not None:
+                slots.append(slot)
+        return slots
+
+    def connect(self, slot):
+        slot_ref = callable_weakref(slot, self.__on_slot_deleted)
+        self.__slots.append(slot_ref)
+
+    def disconnect(self, slot):
+        slot_ref = callable_weakref(slot)
+        self.__disconnect(slot_ref)
 
     def emit(self, *args, **kwargs):
-        pass
+        slots = self.__slots
+        for slot in slots:
+            self.__emit(slot(), args, kwargs)
+
+
+    # -- Descriptor -----------------------------------------------------------
+
+    def __get__(self, obj, objtype=None):
+        self_ref = weakref.ref(self)
+        try:
+            signals = obj._qarbon_signals__
+        except AttributeError:
+            obj._qarbon_signals__ = signals = {}
+        try:
+            signal = signals[self_ref]
+        except KeyError:
+            signal = Signal(*self.__args, name=self.__name)
+            signals[self_ref] = signal
+        return signal
+
+    def __set__(self, obj, value):
+        raise AttributeError
+
+    def __delete__(self, obj):
+        try:
+            del obj._qarbon_signals__[weakref(self)]
+        except KeyError:
+            pass
+        except AttributeError:
+            pass
 
 

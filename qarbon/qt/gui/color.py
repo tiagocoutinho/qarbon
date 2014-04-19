@@ -30,7 +30,7 @@ def __getQstateColorMap():
 
 def getQColorFromState(state):
     """Returns a tuple<background color (QColor), foreground color (QColor)>
-    from the given :class:`~qarbon.meta.State`.
+    from the given :class:`~qarbon.core.State`.
 
     :param state: the state
     :type state: State
@@ -41,7 +41,7 @@ def getQColorFromState(state):
 
 
 def getBgQColorFromState(state):
-    """Returns a background QColor from the given :class:`~qarbon.meta.State`.
+    """Returns a background QColor from the given :class:`~qarbon.core.State`.
 
     :param state: the state
     :type state: State
@@ -52,7 +52,7 @@ def getBgQColorFromState(state):
 
 
 def getFgQColorFromState(state):
-    """Returns a foreground QColor from the given :class:`~qarbon.meta.State`.
+    """Returns a foreground QColor from the given :class:`~qarbon.core.State`.
 
     :param state: the state
     :type state: State

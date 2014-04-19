@@ -14,7 +14,7 @@ __all__ = ["Axis", "AxesWidget"]
 
 import weakref
 
-from qarbon.meta import State
+from qarbon.core import State
 from qarbon.color import getCSSColorFromState
 from qarbon.external.enum import Enum
 from qarbon.external.qt import QtCore, QtGui
