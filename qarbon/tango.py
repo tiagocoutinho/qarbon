@@ -11,28 +11,52 @@
 
 """Tango plugin for qarbon."""
 
-from weakref import WeakValueDictionary
-from functools import partial
-from concurrent import futures
+import weakref
+import functools
 
 import PyTango as Tango
 
 from qarbon import log
 from qarbon.external.pint import Quantity
-from qarbon.executor import submit
-from qarbon.core import Signal
+from qarbon.executor import task
+from qarbon.core import Factory as _Factory
+from qarbon.core import Database as _Database
 from qarbon.core import Device as _Device
 from qarbon.core import Attribute as _Attribute
-from qarbon.core import Factory as _Factory
 from qarbon.core import Quality, Access, DisplayLevel
 from qarbon.core import AttributeConfig, AttributeValue
 
 __NO_STR_VALUE = Tango.constants.AlrmValueNotSpec, Tango.constants.StatusNotSet
-Dict = WeakValueDictionary
-str_2_obj = Tango.str_2_obj
 
+# The exception reasons that will force switching from events to polling
+# API_AttributePollingNotStarted - the attribute does not support events. 
+#                                  Don't try to resubscribe.
+# API_DSFailedRegisteringEvent - same exception then the one above but higher
+#                                in the stack
+# API_NotificationServiceFailed - Problems in notifd, it was not able to
+#                                 register the event.
+# API_EventChannelNotExported - the notifd is not running
+# API_EventTimeout - after a successfull register the the device server 
+#                    and/or notifd shuts down/crashes
+# API_CommandNotFound - Added on request from ESRF (Matias Guijarro). They have
+#                       a DS in java (doesn't have events) and the only way they
+#                       found to fix the event problem was to add this exception
+#                       type here. Maybe in future this will be solved in a better
+#                       way
+# API_BadConfigurationProperty - the device server is not running
+EVENT_TO_POLLING_EXCEPTIONS = set(
+    ('API_AttributePollingNotStarted',
+     'API_DSFailedRegisteringEvent',
+     'API_NotificationServiceFailed',
+     'API_EventChannelNotExported',
+     'API_EventTimeout',
+     'API_EventPropertiesNotSet',
+     'API_CommandNotFound',))
+#                                   'API_BadConfigurationProperty') 
 
 def quantity_t2q(value, units=None, fmt=None):
+    if value is None:
+        return None
     res = Quantity(value, units=units)
     if fmt is not None:
         res.default_format = fmt + res.default_format
@@ -40,7 +64,7 @@ def quantity_t2q(value, units=None, fmt=None):
 
 
 def quantity_str2t(value_str, dtype=None, units=None, fmt=None):
-    return quantity_t2q(str_2_obj(value_str, dtype), units=units, fmt=fmt)
+    return quantity_t2q(Tango.str_2_obj(value_str, dtype), units=units, fmt=fmt)
 
 
 def quantity_str2t_no_error(value_str, dtype=None, units=None, fmt=None):
@@ -143,13 +167,16 @@ def attr_config_t2q(tango_cfg):
     numerical = Tango.is_numerical_type(dtype)         
 
     result.unit = units = unit_t2q(tango_cfg.unit, to_quantity=numerical)
-    result.display_unit = display_unit_t2q(tango_cfg.display_unit, to_quantity=numerical)
-    result.standard_unit = standard_unit_t2q(tango_cfg.standard_unit, to_quantity=numerical)
+    result.display_unit = display_unit_t2q(tango_cfg.display_unit,
+                                           to_quantity=numerical)
+    result.standard_unit = standard_unit_t2q(tango_cfg.standard_unit,
+                                             to_quantity=numerical)
 
     if numerical:
-        Q_ = partial(quantity_str2t_no_error, units=units, dtype=dtype, fmt=disp_fmt)
+        Q_ = functools.partial(quantity_str2t_no_error, units=units,
+                               dtype=dtype, fmt=disp_fmt)
     else:
-        Q_ = partial(str_2_obj, tg_type=dtype)
+        Q_ = functools.partial(Tango.str_2_obj, tg_type=dtype)
     result.min_value = Q_(tango_cfg.min_value)
     result.max_value = Q_(tango_cfg.max_value)
     result.min_alarm = Q_(tango_cfg.min_alarm)
@@ -178,6 +205,7 @@ def attr_value_t2q(attr_cfg, tango_attr_value):
             pass
 
     dtype = tango_attr_value.type
+    dformat = tango_attr_value.data_format
     fmt = attr_cfg.display_format
     numerical = Tango.is_numerical_type(dtype)
 
@@ -193,199 +221,401 @@ def attr_value_t2q(attr_cfg, tango_attr_value):
             w_value = Quantity(w_value, units=units)
             if fmt is not None:
                 w_value.default_format = fmt + w_value.default_format
-        
+    
+    r_ndim = 0
+    if dformat == Tango.AttrDataFormat.SPECTRUM:
+        r_ndim = 1
+    elif dformat == Tango.AttrDataFormat.IMAGE:
+        r_ndim = 2
+    
     quality = quality_t2q(tango_attr_value.quality)
-    value = AttributeValue(r_value=r_value, r_quality=quality,
+    value = AttributeValue(r_value=r_value, r_quality=quality, r_ndim=r_ndim,
                            r_timestamp=tango_attr_value.time.todatetime(),
                            w_value=w_value, config=attr_cfg)
     return value
 
 
+def clone_attr_value(attr_cfg, attr_value):
+    """ """
+    r_value = attr_value.r_value
+    r_quality = attr_value.r_quality
+    r_ndim = attr_value.r_ndim
+    r_timestamp = attr_value.r_timestamp
+    w_value = attr_value.w_value
+    fmt = attr_cfg.display_format
+    if isinstance(r_value, Quantity):
+        r_value = Quantity(r_value.magnitude, units=attr_cfg.unit)
+        if fmt is not None:
+            r_value.default_format = fmt + r_value.default_format
+    if isinstance(w_value, Quantity):
+        w_value = Quantity(w_value.magnitude, units=attr_cfg.unit)
+        if fmt is not None:
+            w_value.default_format = fmt + w_value.default_format
+    value = AttributeValue(r_value=r_value, r_quality=r_quality, r_ndim=r_ndim,
+                           r_timestamp=r_timestamp, w_value=w_value,
+                           config=attr_cfg)
+    return value
+
+class TangoFuture(object):
+
+    def __init__(self, future):
+        self.__future = future
+        self.__value = None
+
+    def _get_value(self):
+        if self.__value is None:
+            value = self.__future.result()
+            self.__value = self._decode(value)
+        return self.__value
+
+
+class TangoAttributeConfigFuture(AttributeConfig, TangoFuture):
+
+    def __init__(self, attr_config_f):
+        AttributeConfig.__init__(self)
+        TangoFuture.__init__(self, attr_config_f)
+    
+    def _decode(self, attr_config):
+        return attr_config_t2q(attr_config)
+
+    @property
+    def name(self):
+        return self._get_value().name
+
+    @property
+    def label(self):
+        return self._get_value().label
+
+    @property
+    def description(self):
+        return self._get_value().description
+
+    @property
+    def ndim(self):
+        return self._get_value().ndim
+
+    @property
+    def access(self):
+        return self._get_value().access
+
+    @property
+    def display_format(self):
+        return self._get_value().display_format
+
+    @property
+    def unit(self):
+        return self._get_value().unit
+
+
+class TangoAttributeValueFuture(AttributeValue, TangoFuture):
+
+    def __init__(self, dev_attr_f, config=None):
+        AttributeValue.__init__(self, config=config)
+        TangoFuture.__init__(self, dev_attr_f)
+
+    def _decode(self, dev_attr):
+        return attr_value_t2q(self.config, dev_attr)
+
+    @property
+    def r_value(self):
+        return self._get_value().r_value
+
+    @property
+    def r_ndim(self):
+        return self._get_value().r_ndim
+             
+    @property
+    def r_quality(self):
+        return self._get_value().r_quality
+
+    @property
+    def r_timestamp(self):
+        return self._get_value().r_timestamp
+
+    @property
+    def w_value(self):
+        return self._get_value().w_value
+
+    @property
+    def exc_info(self):
+        return self._get_value().exc_info
+
+    @property
+    def error(self):
+        return self._get_value().error
+
+
+class Database(_Database):
+
+    def __init__(self, name, parent=None):
+        _Database.__init__(self, name, parent=parent)
+        self.__database = task(Tango.Database, name)
+
+    def hw_database(self):
+        return self.__database.result()
+
+    def get_device(self, name):
+        name = name.lower()
+        device = self.get_child(name)
+        if device is None:
+            device = self.add_child(name, Device(name, parent=self))         
+        return device
+    
+
 class Device(_Device):
 
-    def __init__(self, name):
-        _Device.__init__(self, name)
-        self.__attr_value_cache = {}
-        self.__attr_config_cache = {}
-        self.__device_future = submit(Tango.DeviceProxy, name)
+    def __init__(self, name, parent=None):
+        _Device.__init__(self, name, parent=parent)
+        self.__device = task(Tango.DeviceProxy, name)
 
     @property
     def hw_device(self):
-        return self.__device_future.result()   
+        return self.__device.result()
 
-    def __read_attribute_value(self, attr_name):
-        attr_name = attr_name.lower()
-        tango_attr_value = self.hw_device.read_attribute(attr_name)
-        try:
-            attr_cfg = self.__attr_config_cache[attr_name]
-        except KeyError:
-            attr_cfg = self.__read_attribute_config(attr_name)
-        attr_value = attr_value_t2q(attr_cfg, tango_attr_value)
-        return attr_value
+    def get_attribute(self, name):
+        name = name.lower()
+        attr = self.get_child(name)
+        if attr is None:
+            attr = self.add_child(name, Attribute(name, parent=self))
+        return attr
 
-    def __read_attribute_config(self, attr_name):
-        attr_name = attr_name.lower()
-        tango_cfg = self.hw_device.get_attribute_config_ex(attr_name)[0]
-        attr_cfg = attr_config_t2q(tango_cfg)
-        return attr_cfg
-
-    def __run_command(self, cmd_name, *args, **kwargs):
+    def __execute(self, cmd_name, *args, **kwargs):
         result = self.command_inout(cmd_name, *args, **kwargs)
         return result
 
-    def _set_attribute_value_cache(self, attr_name, value):
-        if isinstance(value, futures.Future):
-            value_f = value
-        else:
-            value_f = futures.Future()
-            value_f.set_result(value)
-        self.__attr_value_cache[attr_name] = value_f
-
-    def _set_attribute_config_cache(self, attr_name, config):
-        if isinstance(config, futures.Future):
-            config_f = config
-        else:
-            config_f = futures.Future()
-            config_f.set_result(config)
-        self.__attr_config_cache[attr_name] = config_f
-                                
-    def get_state(self):
-        return submit(self.hw_device.state)
-
-    def read_attribute(self, attr_name):
-        """returns a Future of AttributeValue"""
-        attr_value = submit(self.__read_attribute_value, attr_name)
-        self._set_attribute_value_cache(attr_name, attr_value)
-        return attr_value
-
-    def get_attribute_config(self, attr_name):
-        """returns a Future of AttributeConfig"""        
-        attr_name = attr_name.lower()
-        attr_cfg = self.__attr_config_cache.get(attr_name)
-        if attr_cfg is None:
-            attr_cfg = submit(self.__read_attribute_config, attr_name)
-            self._set_attribute_config_cache(attr_name, attr_cfg)
-        return attr_cfg
-
-    def get_attribute_value(self, attr_name):
-        attr_name = attr_name.lower()
-        attr_value = self.__attr_value_cache.get(attr_name)
-        if attr_value is None:
-            attr_value = self.read_attribute(attr_name)
-            self._set_attribute_value_cache(attr_name, attr_value)
-        return attr_value
-
-    def run_command(self, cmd_name, *args, **kwargs):
-        return submit(self.__run_command,  cmd_name, *args, **kwargs)        
+    def execute(self, cmd_name, *args, **kwargs):
+        return task(self.__execute, cmd_name, *args, **kwargs)        
 
     def __getattr__(self, name):
-        return getattr(self.__device, name)
+        return getattr(self.hw_device, name)
+
+
+def on_change_event(attr_ref, event_data):
+    attr = attr_ref()
+    if attr is not None:
+        task(attr._on_change_event_task_safe, event_data)
+
+
+def on_config_event(attr_ref, event_data):
+    attr = attr_ref()
+    if attr is not None:
+        task(attr._on_config_event_task_safe, event_data)
+
+
+def init_attribute(attr_ref):
+    attr = attr_ref()
+    if attr is not None:
+        attr._init_safe()
 
 
 class Attribute(_Attribute):
 
-    valueChanged = Signal()
-
-    def __init__(self, device, name):
-        _Attribute.__init__(self, device, name)
-        self.__evt_ids_future = submit(self.__init_future)
-
-    def __init_future(self):
-        dev = self.device.hw_device
-        evt_type = Tango.EventType.ATTR_CONF_EVENT
-        try:
-            cfg_evt_id = dev.subscribe_event(self.name, evt_type, self.__onConfigEvent)
-        except Tango.DevFailed:
-            cfg_evt_id = dev.subscribe_event(self.name, evt_type, self.__onConfigEvent, [], True)
-            
-        evt_type = Tango.EventType.CHANGE_EVENT
-        try:
-            ch_evt_id = dev.subscribe_event(self.name, evt_type, self.__onChangeEvent)
-        except Tango.DevFailed:
-            ch_evt_id = dev.subscribe_event(self.name, evt_type, self.__onChangeEvent, [], True)
-        return cfg_evt_id, ch_evt_id
+    def __init__(self, name, parent=None):
+        _Attribute.__init__(self, name, parent=parent)
+        self.__attr_value = None
+        self.__attr_config = None
+        self.__event_ids = set()
+        task(init_attribute, weakref.ref(self))
 
     def __del__(self):
-        for evt_id in self.__evt_ids_future.result():
-            self.device.hw_device.unsubscribe_event(evt_id)
-        
-    @log.debug_it
-    def __onChangeEvent(self, event_data):
-        attr_cfg_future = self.device.get_attribute_config(self.name)
-        if event_data.err:
-            log.error("error change event")
-        else:
-            attr_value = attr_value_t2q(attr_cfg_future.result(),
-                                        event_data.attr_value)
-            self.device._set_attribute_value_cache(self.name, attr_value)
-            self.valueChanged.emit()
+        self.clean_up()
 
     @log.debug_it
-    def __onConfigEvent(self, event_data):
+    def clean_up(self):
+        evts = self.__event_ids
+        dev = self.device.hw_device
+        while True:
+            try:
+                evt = evts.pop()
+            except KeyError:
+                break
+            try:
+                dev.unsubscribe_event(evt)
+            except:
+                log.error("Failed to unsubscribe from event %d", evt)
+
+    def _init_safe(self):
+        try:
+            return self.__init()
+        except:
+            log.error("Exception in Attribute(%s).__init", self.name,
+                      exc_info='debug')
+
+    def __init(self):
+        dev = self.device.hw_device
+        evt_type = Tango.EventType.ATTR_CONF_EVENT
+        cb = functools.partial(on_config_event, weakref.ref(self))
+        try:
+            evt_id = dev.subscribe_event(self.name, evt_type, cb)
+        except Tango.DevFailed:
+            evt_id = dev.subscribe_event(self.name, evt_type, cb, [], True)
+        self.__event_ids.add(evt_id)
+        
+        evt_type = Tango.EventType.CHANGE_EVENT
+        cb = functools.partial(on_change_event, weakref.ref(self))
+        try:
+            evt_id = dev.subscribe_event(self.name, evt_type, cb)
+        except Tango.DevFailed:
+            evt_id = dev.subscribe_event(self.name, evt_type, cb, [], True)
+        self.__event_ids.add(evt_id)
+
+    @log.debug_it
+    def _on_change_event_task_safe(self, event_data):
+        try:
+            self.__on_change_event_task(event_data)
+        except:
+            log.error("Exception in change event callback", exc_info='debug')
+
+    @log.debug_it
+    def __on_change_event_task(self, event_data):
         if event_data.err:
-            log.error("error config event")
+            errors = event_data.errors
+            if len(errors):
+                reason = errors[0].reason
+                if reason in EVENT_TO_POLLING_EXCEPTIONS:
+                    # TODO: start polling
+                    pass
+                else:
+                    attr_value = AttributeValue(Tango.DevFailed(*errors))
+                    self.__attr_value = attr_value
+                    self.errorOccurred.emit(attr_value)
         else:
-            attr_value_future = self.device.get_attribute_value(self.name)
-            attr_config = attr_config_t2q(event_data.attr_conf)
-            self.device._set_attribute_config_cache(self.name, attr_config)
-            attr_value_future.result().config = attr_config
-            self.valueChanged.emit()
+            attr_config = self.__get_config()
+            attr_value = attr_value_t2q(attr_config, event_data.attr_value)
+            self.__attr_value = attr_value
+            self.valueChanged.emit(attr_value)
+
+    @log.debug_it
+    def _on_config_event_task_safe(self, attr_cfg_event):
+        try:
+            self.__on_config_event_task(attr_cfg_event)
+        except:
+            log.error("Exception in config event callback", exc_info='debug')
+
+    @log.debug_it
+    def __on_config_event_task(self, attr_cfg_event):
+        self.__attr_config = cfg = attr_config_t2q(attr_cfg_event.attr_conf)
+        value = self.__attr_value
+        if value is None:
+            value = self.read()
+        else:
+            try:
+                self._attr_value = value = clone_attr_value(cfg, value)
+            except:
+                import traceback; traceback.print_exc()
+        self.valueChanged.emit(value)
+
+    def __get_config(self):
+        cfg = self.__attr_config
+        if cfg is None:
+            hw = self.device.hw_device
+            attr_cfg_f = task(hw.get_attribute_config, self.name)
+            cfg = TangoAttributeConfigFuture(attr_cfg_f)
+            self.__attr_config = cfg
+        return cfg
+
+    def __get_value(self):
+        value = self.__attr_value
+        if value is None:
+            value = self.__read()
+        return value
+
+    def __read(self):
+        hw = self.device.hw_device
+        dev_attr_f = task(hw.read_attribute, self.name)
+        attr_config = self.__get_config()
+        attr_value = TangoAttributeValueFuture(dev_attr_f, attr_config)
+        self.__attr_value = attr_value
+        return attr_value
+
+    # -- API ------------------------------------------------------------------
 
     def read(self):
-        return self.device.read_attribute(self.name)
+        return self.__read()
 
-    def write(self, value):
+    def write(self):
         pass
 
     def get_value(self):
-        return self.device.get_attribute_value(self.name)
+        return self.__get_value()
 
 
-class Factory(_Factory):
+class TangoFactory(_Factory):
 
     def __init__(self):
         _Factory.__init__(self)
-        self.__devices = Dict() 
-    
+
+    @log.debug_it
+    def get_database(self, name=None):
+        if name is None:
+            name = Tango.ApiUtil.get_env_var("TANGO_HOST")
+            if name is None:
+                raise KeyError("Default tango database not defined")
+        name = name.lower()
+        database = self.get_child(name)
+        if database is None:
+            database = self.add_child(name, Database(name))         
+        return database
+
     @log.debug_it
     def get_device(self, name):
-        name_lower = name.lower()
-        device = self.__devices.get(name_lower)
-        if device is None:
-            device = Device(name)         
-            self.__devices[name_lower] = device
-        return device
+        #TODO: slit name into database and device
+        database = self.get_database()
+        return database.get_device(name)
 
     @log.debug_it
     def get_attribute(self, name):
+        #TODO: split properly
         dev_name, name = name.rsplit("/", 1)
         device = self.get_device(dev_name)
-        return Attribute(device, name)       
+        return device.get_attribute(name)       
+
+
+__factory = None
+def Factory():
+    global __factory
+    if __factory is None:
+        __factory = TangoFactory()
+    return __factory
 
 
 def main():
     import sys
-    import qarbon.log
-    import qarbon.config
+    import time
+    from qarbon import config
     
+    config.EXECUTOR = "thread"
+    config.MAX_WORKERS = 1
+    
+    log.initialize(log_level='debug')
+    
+    attr_name = 'sys/tg_test/1/double_scalar'
     if len(sys.argv) > 1:
         attr_name = sys.argv[1]
-        if '/' not in attr_name:
-            attr_name = 'sys/tg_test/1/' + attr_name
-    else:
-        attr_name = 'sys/tg_test/1/double_scalar'
-        
-    qarbon.config.EXECUTOR = "thread"
-    qarbon.config.MAX_WORKERS = 5
-    qarbon.log.initialize(log_level='debug')
 
     f = Factory()
     attr = f.get_attribute(attr_name)
-    #attr_value = attr.read().result()
-    #print(attr_value, attr_value.timestamp, "{0}".format(attr_value))
 
-    import time
-    time.sleep(22)
+    @log.info_it
+    def value_changed(new_value):
+        log.debug("event value: %s", new_value)
+    attr.valueChanged.connect(value_changed)
+
+    v = attr.read()
+    log.info("Read value: %s", v)
+
+    count = 0
+    try:
+        while True:
+            time.sleep(1)
+            count += 1
+            if count == 3:
+                log.warning("delete attr")
+                del value_changed
+                del attr
+    except KeyboardInterrupt:
+        pass
+
 
 if __name__ == "__main__":
     main()

@@ -13,7 +13,7 @@
 
 __all__ = ["Quality", "Access", "DisplayLevel", "DataAccess", "DataType", 
            "State", "AttributeConfig", "AttributeValue", "Manager",
-           "Factory", "Device", "Attribute", "Signal"]
+           "Factory", "Device", "Attribute"]
 
 import abc
 import sys
@@ -23,7 +23,8 @@ import datetime
 from qarbon.external.enum import Enum
 
 from . import log
-from .util import isString, callable_weakref
+from .util import isString
+from .signal import Signal
 
 _PY3 = sys.version_info[0] > 2
 
@@ -47,6 +48,7 @@ class DisplayLevel(Enum):
     Expert, \
     Developer, \
     Administrator = range(4)
+
 
 class DataAccess(Enum):
     """Data access enum"""
@@ -204,18 +206,18 @@ class AttributeValue(object):
     def __init__(self, r_value=None, r_timestamp=None, r_ndim=None, 
                  r_quality=None, w_value=None, exc_info=None,
                  config=None):
-        self.__config= config        
         if r_timestamp is None:
             r_timestamp = datetime.datetime.now()
-        self.__r_timestamp = r_timestamp     
         self.__r_value = r_value
+        self.__r_timestamp = r_timestamp     
         self.__r_ndim = r_ndim
         self.__r_quality = r_quality
         self.__w_value = w_value
         self.__exc_info = exc_info
+        self.__config= config        
 
-#    def __getattr__(self, name):
-#        return getattr(self.__config, name)
+    def __getattr__(self, name):
+        return getattr(self.__config, name)
 
     def __str__(self):
         return "{0}".format(self.r_value)
@@ -286,6 +288,13 @@ warning_range = {0.warning_range}
     def quality(self):
         return self.r_quality
 
+    @property
+    def w_value(self):
+        return self.__w_value
+
+    def is_error(self):
+        return self.__exc_info is not None
+
 
 class _Manager(object):
     
@@ -307,10 +316,58 @@ def Manager():
     return __MANAGER
 
 
-class Factory(object):
+class BaseObject(object):
     __metaclass__ = abc.ABCMeta
+
+    def __init__(self, name, parent=None):
+        self.__name = name
+        self.__parent = parent
+        self.__children = weakref.WeakValueDictionary()
+
+    @property
+    def name(self):
+        return self.__name
+
+    def get_parent(self):
+        return self.__parent
+
+    def get_children(self):
+        return self.__children
     
-    def __init__(self):
+    def get_child(self, name):
+        return self.__children.get(name)
+    
+    def has_child(self, name):
+        return name in self.__children
+
+    def add_child(self, name, child):
+        self.__children[name] = child
+        return child
+
+    def __repr__(self):
+        cname, parent, name = self.__class__.__name__, self.__parent, self.__name
+        if parent is None:
+            return "{0}(name={1})".format(cname, name)
+        return "{0}(name={1}, parent={2!r})".format(cname, name, parent)
+
+    def __str__(self):
+        cname, parent, name = self.__class__.__name__, self.__parent, self.__name
+        if parent is None:
+            return "{0}({1})".format(cname, name)
+        return "{0}({1}, {2})".format(cname, name, parent)
+
+
+class Factory(BaseObject):
+
+    schemes = ()
+
+    def __init__(self, name=None, parent=None):
+        if name is None:
+            name = self.__class__.__name__
+        BaseObject.__init__(self, name, parent=parent)
+
+    @abc.abstractmethod
+    def get_database(self, name):
         pass
 
     @abc.abstractmethod
@@ -322,46 +379,45 @@ class Factory(object):
         pass
 
 
-class Device(object):
-    __metaclass__ = abc.ABCMeta
+class Database(BaseObject):
 
-    def __init__(self, name):
-        self.__name = name
-    
+    def __init__(self, name, parent=None):
+        BaseObject.__init__(self, name, parent=parent)
+
+    @abc.abstractmethod
+    def get_device(self, device_name):
+        pass
+
+
+class Device(BaseObject):
+
+    def __init__(self, name, parent=None):
+        BaseObject.__init__(self, name, parent=parent)
+
     @property
-    def name(self):
-        return self.__name
+    def database(self):
+        return self.get_parent()
 
     @abc.abstractmethod
-    def get_state(self):
+    def get_attribute(self, attr_name):
         pass
 
     @abc.abstractmethod
-    def read_attribute(self, name):
+    def execute(self, cmd, *args, **kwargs):
         pass
 
-    @abc.abstractmethod
-    def run_command(self, cmd, *args, **kwargs):
-        pass
 
-    def __str__(self):
-        return "{0}({1})".format(self.__class__.__name__, self.__name)
+class Attribute(BaseObject):
 
+    valueChanged = Signal(object)
+    errorOccurred = Signal(object)
 
-class Attribute(object):
-    __metaclass__ = abc.ABCMeta
-
-    def __init__(self, device, name):
-        self.__device = device
-        self.__name = name
+    def __init__(self, name, parent=None):
+        BaseObject.__init__(self, name, parent=parent)
 
     @property
     def device(self):
-        return self.__device
-
-    @property
-    def name(self):
-        return self.__name
+        return self.get_parent()
 
     @abc.abstractmethod
     def read(self):
@@ -370,100 +426,4 @@ class Attribute(object):
     @abc.abstractmethod
     def write(self, value):
         pass
-
-    def __str__(self):
-        return "{0}({1})".format(self.__class__.__name__, self.__name)
-
-
-class Signal(object):
-
-    def __init__(self, *args, **kwargs):
-        self.__args = args
-        self.__name = kwargs.pop('name', '')
-        self.__slots = []
-
-    def __on_slot_deleted(self, slot_ref):
-        self.__disconnect(slot_ref)
-
-    def __disconnect(self, slot_ref):
-        try:
-            self.__slots.remove(slot_ref)
-            return True
-        except ValueError:
-            slot = slot_ref()
-            if slot is None:
-                log.debug("attempting to disconnect unbound slot")
-            else:
-                log.debug("slot '%s' is not connected to signal",
-                          slot.__name__)
-        except:
-            slot = slot_ref()
-            if slot is None:
-                log.error("Exception trying to disconnect unbound slot "
-                      "from signal", exc_info='debug')
-            else:
-                log.error("Exception trying to disconnect slot '%s' "
-                          "from signal", slot.__name__, exc_info='debug')
-
-        return False        
-
-    def __emit(self, slot, args, kwargs):
-        try:
-            slot(*args, **kwargs)
-        except:
-            sname = slot.__name__
-            log.error("Exception emitting signal to slot '%s'",
-                      sname, exc_info='debug')
-
-    # -- API ------------------------------------------------------------------
-    
-    def slots(self):
-        """Returns the list of connected slots"""
-        slots, all_slots = [], self.__slots
-        for slot in all_slots:
-            slot = slot()
-            if slot is not None:
-                slots.append(slot)
-        return slots
-
-    def connect(self, slot):
-        slot_ref = callable_weakref(slot, self.__on_slot_deleted)
-        self.__slots.append(slot_ref)
-
-    def disconnect(self, slot):
-        slot_ref = callable_weakref(slot)
-        self.__disconnect(slot_ref)
-
-    def emit(self, *args, **kwargs):
-        slots = self.__slots
-        for slot in slots:
-            self.__emit(slot(), args, kwargs)
-
-
-    # -- Descriptor -----------------------------------------------------------
-
-    def __get__(self, obj, objtype=None):
-        self_ref = weakref.ref(self)
-        try:
-            signals = obj._qarbon_signals__
-        except AttributeError:
-            obj._qarbon_signals__ = signals = {}
-        try:
-            signal = signals[self_ref]
-        except KeyError:
-            signal = Signal(*self.__args, name=self.__name)
-            signals[self_ref] = signal
-        return signal
-
-    def __set__(self, obj, value):
-        raise AttributeError
-
-    def __delete__(self, obj):
-        try:
-            del obj._qarbon_signals__[weakref(self)]
-        except KeyError:
-            pass
-        except AttributeError:
-            pass
-
 
