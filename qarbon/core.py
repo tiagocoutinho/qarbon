@@ -344,17 +344,28 @@ class BaseObject(object):
         self.__children[name] = child
         return child
 
-    def __repr__(self):
-        cname, parent, name = self.__class__.__name__, self.__parent, self.__name
-        if parent is None:
-            return "{0}(name={1})".format(cname, name)
-        return "{0}(name={1}, parent={2!r})".format(cname, name, parent)
+     # -- simpler repr and str ------------------------------------------------
+#    def __repr__(self):
+#        cname, name = self.__class__.__name__, self.__name
+#        return "{0}(name={1})".format(cname, name)
 
+#    def __str__(self):
+#        cname, name = self.__class__.__name__, self.__name
+#        return "{0}({1})".format(cname, name)
+
+    # -- more complete repr and str -------------------------------------------
+    def __repr__(self):
+       cname, parent, name = self.__class__.__name__, self.__parent, self.__name
+       if parent is None:
+           return "{0}(name={1})".format(cname, name)
+       return "{0}(name={1}, parent={2!r})".format(cname, name, parent)
+ 
     def __str__(self):
-        cname, parent, name = self.__class__.__name__, self.__parent, self.__name
-        if parent is None:
-            return "{0}({1})".format(cname, name)
-        return "{0}({1}, {2})".format(cname, name, parent)
+       cname, parent, name = self.__class__.__name__, self.__parent, self.__name
+       if parent is None:
+           return "{0}({1})".format(cname, name)
+       return "{0}({1}, {2})".format(cname, name, parent)
+
 
 
 class Factory(BaseObject):
