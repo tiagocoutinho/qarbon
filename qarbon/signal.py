@@ -38,7 +38,7 @@ class Signal(object):
         except ValueError:
             slot = slot_ref()
             if slot is None:
-                log.debug("attempting to disconnect unbound slot")
+                log.debug("attempting to disconnect deleted slot")
             else:
                 log.debug("slot '%s' is not connected to signal",
                           slot.__name__)
