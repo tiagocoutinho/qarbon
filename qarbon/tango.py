@@ -25,6 +25,8 @@ from qarbon.core import Device as _Device
 from qarbon.core import Attribute as _Attribute
 from qarbon.core import Quality, Access, DisplayLevel
 from qarbon.core import AttributeConfig, AttributeValue
+from qarbon.core import NullAttributeConfig, NullAttributeValue
+
 from qarbon.util import callable_weakref
 
 __NO_STR_VALUE = Tango.constants.AlrmValueNotSpec, Tango.constants.StatusNotSet
@@ -205,15 +207,17 @@ def attr_value_t2q(attr_cfg, tango_attr_value):
         if tango_attr_value.is_empty:
             pass
 
+    result = AttributeValue()
+
     dtype = tango_attr_value.type
     dformat = tango_attr_value.data_format
-    fmt = attr_cfg.display_format
     numerical = Tango.is_numerical_type(dtype)
 
     r_value = tango_attr_value.value
     w_value = tango_attr_value.w_value
     units = attr_cfg.unit
     if numerical:
+        fmt = attr_cfg.display_format
         if r_value is not None:
             r_value = Quantity(r_value, units=units)
             if fmt is not None:
@@ -228,12 +232,15 @@ def attr_value_t2q(attr_cfg, tango_attr_value):
         r_ndim = 1
     elif dformat == Tango.AttrDataFormat.IMAGE:
         r_ndim = 2
-    
-    quality = quality_t2q(tango_attr_value.quality)
-    value = AttributeValue(r_value=r_value, r_quality=quality, r_ndim=r_ndim,
-                           r_timestamp=tango_attr_value.time.todatetime(),
-                           w_value=w_value, config=attr_cfg)
-    return value
+
+    result.r_ndim = r_ndim    
+    result.r_value = r_value
+    result.r_quality = quality_t2q(tango_attr_value.quality)
+    result.r_timestamp = tango_attr_value.time.todatetime()
+    result.w_value = w_value
+    result.config = attr_cfg
+
+    return result
 
 
 def clone_attr_value(attr_cfg, attr_value):
@@ -393,9 +400,15 @@ class Attribute(_Attribute):
 
     def __init__(self, name, parent=None):
         _Attribute.__init__(self, name, parent=parent)
-        self.__attr_value = None
-        self.__attr_config = None
+        self.__attr_value = NullAttributeValue
+        self.__attr_config = NullAttributeConfig
         self.__event_ids = set()
+
+        # make sure that there is an initial value in cache
+        # so that slots get called immediately when they connect
+        self.valueChanged.set_cache(self.__attr_value)
+
+        # assign initialization to separate task
         task(self._init_safe)
 
     def __del__(self):
@@ -425,22 +438,45 @@ class Attribute(_Attribute):
 
     def __init(self):
         dev = self.device.hw_device
+        failed = 0
+
+        # subscribe to configuration events
         evt_type = Tango.EventType.ATTR_CONF_EVENT
+        
+        # we have to use a function as callback because method
+        # would make a circular reference which prevents garb. collection.
         cb = functools.partial(on_config_event, weakref.ref(self))
+        
         try:
             evt_id = dev.subscribe_event(self.name, evt_type, cb)
         except Tango.DevFailed:
+            # Failed: server is down or event system not available
+            failed += 1
+            # 1 - force a value to be fetched if possible to have it in cache
+            self.__get_config()
+            
+            # 2 - force a subscription to be able to recover as soon as
+            #     server starts or event system is available
             evt_id = dev.subscribe_event(self.name, evt_type, cb, [], True)
         self.__event_ids.add(evt_id)
         
+        # subscribe to configuration events
         evt_type = Tango.EventType.CHANGE_EVENT
+
+        # we have to use a function as callback because method
+        # would make a circular reference which prevents garb. collection.
         cb = functools.partial(on_change_event, weakref.ref(self))
+        
         try:
             evt_id = dev.subscribe_event(self.name, evt_type, cb)
         except Tango.DevFailed:
+            # Failed: server is down or event system not available
+            failed += 1
+            # 1 - force a value to be fetched if possible to have it in cache
+            self.__get_value()
             evt_id = dev.subscribe_event(self.name, evt_type, cb, [], True)
         self.__event_ids.add(evt_id)
-
+        
     def __on_change_event(self, event_data):
         item = WeakWorkItem(self._on_change_event_task_safe)
         del self
@@ -463,9 +499,10 @@ class Attribute(_Attribute):
                     # TODO: start polling
                     pass
                 else:
-                    attr_value = AttributeValue(Tango.DevFailed(*errors))
+                    exc_info = Tango.DevFailed, Tango.DevFailed(*errors), None
+                    attr_value = AttributeValue(exc_info=exc_info)
                     self.__attr_value = attr_value
-                    self.errorOccurred.emit(attr_value)
+                    self.valueChanged.emit(attr_value)
         else:
             attr_config = self.__get_config()
             attr_value = attr_value_t2q(attr_config, event_data.attr_value)
@@ -484,9 +521,11 @@ class Attribute(_Attribute):
 
     #@log.debug_it
     def __on_config_event_task(self, attr_cfg_event):
+        if attr_cfg_event.err:
+            return
         self.__attr_config = cfg = attr_config_t2q(attr_cfg_event.attr_conf)
         value = self.__attr_value
-        if value is None:
+        if value is NullAttributeValue:
             value = self.read()
         else:
             try:
@@ -497,7 +536,7 @@ class Attribute(_Attribute):
 
     def __get_config(self):
         cfg = self.__attr_config
-        if cfg is None:
+        if cfg is NullAttributeConfig:
             hw = self.device.hw_device
             attr_cfg_f = task(hw.get_attribute_config, self.name)
             cfg = TangoAttributeConfigFuture(attr_cfg_f)
@@ -506,7 +545,7 @@ class Attribute(_Attribute):
 
     def __get_value(self):
         value = self.__attr_value
-        if value is None:
+        if value is NullAttributeValue:
             value = self.__read()
         return value
 
@@ -570,7 +609,25 @@ def Factory():
 
 
 def main():
-    pass
+    import sys
+    import time
+    log.initialize(log_level='debug')
+    attr_name = 'sys/tg_test/1/double_scalar'
+    if len(sys.argv) > 1:
+        attr_name = sys.argv[1]    
+    factory = Factory()
+    attr = factory.get_attribute(attr_name)
+
+    def on_value_changed(e):
+        print("Event str: %s" % e)
+
+    attr.valueChanged.connect(on_value_changed)
+
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("\nExiting...")
 
 if __name__ == "__main__":
     main()

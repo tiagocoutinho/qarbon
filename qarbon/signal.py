@@ -53,12 +53,21 @@ class Signal(object):
         return False        
 
     def __emit(self, slot, args, kwargs):
+        """Emit signal to a single slot"""
         try:
             slot(*args, **kwargs)
         except:
             sname = slot.__name__
             log.error("Exception emitting signal to slot '%s'",
                       sname, exc_info='debug')
+    
+    def set_cache(self, *args, **kwargs):
+        """
+        Fills the cache without actually emitting the signal.
+        Not part of the API. It is a helper method for signal owners to
+        use as necessary.
+        """
+        self.__cache = args, kwargs
 
     # -- Descriptor API -------------------------------------------------------
 

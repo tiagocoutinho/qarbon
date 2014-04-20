@@ -12,8 +12,9 @@
 """Model core module."""
 
 __all__ = ["Quality", "Access", "DisplayLevel", "DataAccess", "DataType", 
-           "State", "AttributeConfig", "AttributeValue", "Manager",
-           "Factory", "Device", "Attribute"]
+           "State", "Manager", "Factory", "Device", "Attribute",
+           "AttributeConfig", "AttributeValue",
+           "NullAttributeConfig", "NullAttributeValue"]
 
 import abc
 import sys
@@ -28,26 +29,31 @@ from .signal import Signal
 
 _PY3 = sys.version_info[0] > 2
 
+ErrorStr = ErrorRepr = "Error!"
+
 class Quality(Enum):
     Valid, \
     Invalid, \
     Alarm, \
     Changing, \
-    Warning = range(5)
+    Warning, \
+    _Invalid = range(6)
 
 
 class Access(Enum):
     Read, \
     ReadWithWrite, \
     Write, \
-    ReadWrite = range(4)
+    ReadWrite, \
+    _Invalid = range(5)
 
 
 class DisplayLevel(Enum):
     Operator, \
     Expert, \
     Developer, \
-    Administrator = range(4)
+    Administrator, \
+    _Invalid = range(5)
 
 
 class DataAccess(Enum):
@@ -130,15 +136,59 @@ class State(Enum):
 
 
 class AttributeConfig(object):
+    
+#    def __init__(self):
+#        self.name = None
+#        self.label = None
+#        self.description = None
+#        self.ndim = None
+#        self.format = None
+#        self.display_level = None
+#        self.display_format = None
+#        self.access = None
+#        self.unit = None
+#        self.standard_unit = None
+#        self.display_unit = None
+#        self.min_value = None
+#        self.max_value = None
+#        self.min_alarm = None
+#        self.max_alarm = None
+#        self.min_warning = None
+#        self.max_warning = None
+#        self.value_range = None, None
+#        self.alarm_range = None, None
+#        self.warning_range = None, None
 
-    name = None
-    label = None
-    description = None
-    ndim = None
-    format = None
-    display_level = None
-    display_format = None
-    access = None
+#    def __init__(self):
+#        self.name = ""
+#        self.label = "-----"
+#        self.description = ""
+#        self.ndim = 0
+#        self.format = "%s"
+#        self.display_level = DisplayLevel._Invalid
+#        self.display_format = "!s"
+#        self.access = Access._Invalid
+#        self.unit = None
+#        self.standard_unit = None
+#        self.display_unit = None
+#        self.min_value = None
+#        self.max_value = None
+#        self.min_alarm = None
+#        self.max_alarm = None
+#        self.min_warning = None
+#        self.max_warning = None
+#        self.value_range = None, None
+#        self.alarm_range = None, None
+#        self.warning_range = None, None
+
+    name = ""
+    label = "-----"
+    description = ""
+    ndim = -1
+    format = "%s"
+    display_level = DisplayLevel._Invalid
+    display_format = "!s"
+    access = Access._Invalid
     unit = None
     standard_unit = None
     display_unit = None
@@ -152,26 +202,26 @@ class AttributeConfig(object):
     alarm_range = None, None
     warning_range = None, None
 
-    def __init__(self):
-        pass
-
-    def isWrite(self):
+    def is_write(self):
         return self.access == Access.Write
 
-    def isReadOnly(self):
+    def is_readonly(self):
         return self.access == Access.Read
 
-    def isReadWrite(self):
+    def is_readwrite(self):
         return self.access == Access.ReadWrite
 
-    def isScalar(self):
+    def is_scalar(self):
         return self.ndim == 0
 
-    def isSpectrum(self):
+    def is_spectrum(self):
         return self.ndim == 1
 
-    def isImage(self):
+    def is_mage(self):
         return self.ndim == 2
+
+
+NullAttributeConfig = AttributeConfig
 
 
 class AttributeValue(object):
@@ -202,32 +252,45 @@ class AttributeValue(object):
     Example on how to pretty print 
 
     """
+
+    r_value = None
+
+    r_timestamp = None
     
-    def __init__(self, r_value=None, r_timestamp=None, r_ndim=None, 
-                 r_quality=None, w_value=None, exc_info=None,
-                 config=None):
-        if r_timestamp is None:
-            r_timestamp = datetime.datetime.now()
-        self.__r_value = r_value
-        self.__r_timestamp = r_timestamp     
-        self.__r_ndim = r_ndim
-        self.__r_quality = r_quality
-        self.__w_value = w_value
-        self.__exc_info = exc_info
-        self.__config= config
+    r_ndim = None
+
+    r_quality = None
+
+    w_value = None
+
+    exc_info = None
+
+    config = NullAttributeConfig
 
     def __getattr__(self, name):
-        return getattr(self.__config, name)
+        return getattr(self.config, name)
 
     def __str__(self):
-        return "{0}".format(self.r_value)
+        if self.error:
+            value = ErrorStr
+        else:
+            value = self.r_value
+        return "{0}".format(value)
 
     def __repr__(self):
-        return "<AttributeValue({0}, {1})>".format(self.name, self.r_value)
+        cname = self.__class__.__name__
+        if self.error:
+            value = ErrorRepr
+        else:
+            value = self.r_value
+        return "{0}({1}, {2!r})".format(cname, self.name, self.r_value)
     
     def __format__(self, format_spec):
-        return '{obj.label}: {0}'.format(format(self.r_value, format_spec),
-                                         obj=self)
+        if self.error:
+            v = ErrorStr
+        else:
+            v = format(self.r_value, format_spec)
+        return '{obj.label}: {0}'.format(v, obj=self)
 
     def __pformat__(self):
         return """\
@@ -249,55 +312,36 @@ warning_range = {0.warning_range}
 """.format(self)
 
     @property
-    def config(self):
-        return self.__config
-
-    @config.setter
-    def config(self, cfg):
-        self.__config = cfg
-    
-    @property
-    def r_value(self):
-        return self.__r_value
-
-    @property
     def value(self):
         return self.r_value
-
-    @property
-    def r_timestamp(self):
-        return self.__r_timestamp
 
     @property
     def timestamp(self):
         return self.r_timestamp
     
     @property
-    def r_ndim(self):
-        return self.__r_ndim
-
-    @property
     def ndim(self):
         return self.r_ndim
-
-    @property
-    def r_quality(self):
-        return self.__r_quality
 
     @property
     def quality(self):
         return self.r_quality
 
     @property
-    def w_value(self):
-        return self.__w_value
+    def error(self):
+        return self.exc_info is not None
 
-    @property
-    def exc_info(self):
-        return self.__exc_info
+    def is_scalar(self):
+        return self.ndim == 0
 
-    def is_error(self):
-        return self.__exc_info is not None
+    def is_spectrum(self):
+        return self.ndim == 1
+
+    def is_image(self):
+        return self.ndim == 2
+
+
+NullAttributeValue = AttributeValue
 
 
 class _Manager(object):
