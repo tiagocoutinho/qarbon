@@ -90,3 +90,11 @@ EXECUTOR = DEFAULT_EXECUTOR
 
 MAX_WORKERS = DEFAULT_MAX_WORKERS
 
+# ----------------------------------------------------------------------------
+# Control
+# ----------------------------------------------------------------------------
+
+DEFAULT_DEFAULT_SCHEME = 'tango'
+
+DEFAULT_SCHEME = DEFAULT_DEFAULT_SCHEME
+
