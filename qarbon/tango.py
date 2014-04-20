@@ -25,6 +25,7 @@ from qarbon.core import Device as _Device
 from qarbon.core import Attribute as _Attribute
 from qarbon.core import Quality, Access, DisplayLevel
 from qarbon.core import AttributeConfig, AttributeValue
+from qarbon.util import callable_weakref
 
 __NO_STR_VALUE = Tango.constants.AlrmValueNotSpec, Tango.constants.StatusNotSet
 
@@ -256,6 +257,7 @@ def clone_attr_value(attr_cfg, attr_value):
                            config=attr_cfg)
     return value
 
+
 class TangoFuture(object):
 
     def __init__(self, future):
@@ -268,81 +270,44 @@ class TangoFuture(object):
             self.__value = self._decode(value)
         return self.__value
 
+    def __getattr__(self, name):
+        real_value = self._get_value()
+        return getattr(real_value, name)
 
-class TangoAttributeConfigFuture(AttributeConfig, TangoFuture):
+    def __str__(self):
+        return str(self._get_value())
+
+    def __repr__(self):
+        return repr(self._get_value())
+
+
+class TangoAttributeConfigFuture(TangoFuture):
 
     def __init__(self, attr_config_f):
-        AttributeConfig.__init__(self)
         TangoFuture.__init__(self, attr_config_f)
     
     def _decode(self, attr_config):
         return attr_config_t2q(attr_config)
 
-    @property
-    def name(self):
-        return self._get_value().name
 
-    @property
-    def label(self):
-        return self._get_value().label
-
-    @property
-    def description(self):
-        return self._get_value().description
-
-    @property
-    def ndim(self):
-        return self._get_value().ndim
-
-    @property
-    def access(self):
-        return self._get_value().access
-
-    @property
-    def display_format(self):
-        return self._get_value().display_format
-
-    @property
-    def unit(self):
-        return self._get_value().unit
-
-
-class TangoAttributeValueFuture(AttributeValue, TangoFuture):
+class TangoAttributeValueFuture(TangoFuture):
 
     def __init__(self, dev_attr_f, config=None):
-        AttributeValue.__init__(self, config=config)
+        self.config = config
         TangoFuture.__init__(self, dev_attr_f)
 
     def _decode(self, dev_attr):
         return attr_value_t2q(self.config, dev_attr)
 
-    @property
-    def r_value(self):
-        return self._get_value().r_value
+    def __getattr__(self, name):
+        real_value = self._get_value()
+        return getattr(real_value, name)
 
-    @property
-    def r_ndim(self):
-        return self._get_value().r_ndim
-             
-    @property
-    def r_quality(self):
-        return self._get_value().r_quality
+    def __str__(self):
+        return str(self._get_value())
 
-    @property
-    def r_timestamp(self):
-        return self._get_value().r_timestamp
-
-    @property
-    def w_value(self):
-        return self._get_value().w_value
-
-    @property
-    def exc_info(self):
-        return self._get_value().exc_info
-
-    @property
-    def error(self):
-        return self._get_value().error
+    def __repr__(self):
+        return repr(self._get_value())
 
 
 class Database(_Database):
@@ -390,16 +355,32 @@ class Device(_Device):
         return getattr(self.hw_device, name)
 
 
+class WeakWorkItem(object):
+
+    def __init__(self, f):
+        self.__f = callable_weakref(f)
+
+    def __call__(self, *args, **kwargs):
+        f = self.__f()
+        if f is None:
+            log.warning("Weak work item discarded")
+        return f(*args, **kwargs)
+        
+
 def on_change_event(attr_ref, event_data):
     attr = attr_ref()
     if attr is not None:
-        task(attr._on_change_event_task_safe, event_data)
+        item = WeakWorkItem(attr._on_change_event_task_safe)
+        del attr
+        task(item, event_data)
 
 
 def on_config_event(attr_ref, event_data):
     attr = attr_ref()
     if attr is not None:
-        task(attr._on_config_event_task_safe, event_data)
+        item = WeakWorkItem(attr._on_config_event_task_safe)
+        del attr
+        task(item, event_data)
 
 
 def init_attribute(attr_ref):
@@ -415,7 +396,7 @@ class Attribute(_Attribute):
         self.__attr_value = None
         self.__attr_config = None
         self.__event_ids = set()
-        task(init_attribute, weakref.ref(self))
+        task(self._init_safe)
 
     def __del__(self):
         self.clean_up()
@@ -432,7 +413,8 @@ class Attribute(_Attribute):
             try:
                 dev.unsubscribe_event(evt)
             except:
-                log.error("Failed to unsubscribe from event %d", evt)
+                log.error("Failed to unsubscribe from event %d", evt,
+                          exc_info='debug')
 
     def _init_safe(self):
         try:
@@ -459,14 +441,19 @@ class Attribute(_Attribute):
             evt_id = dev.subscribe_event(self.name, evt_type, cb, [], True)
         self.__event_ids.add(evt_id)
 
-    @log.debug_it
+    def __on_change_event(self, event_data):
+        item = WeakWorkItem(self._on_change_event_task_safe)
+        del self
+        task(item, event_data)
+
+    #@log.debug_it
     def _on_change_event_task_safe(self, event_data):
         try:
             self.__on_change_event_task(event_data)
         except:
             log.error("Exception in change event callback", exc_info='debug')
 
-    @log.debug_it
+    #@log.debug_it
     def __on_change_event_task(self, event_data):
         if event_data.err:
             errors = event_data.errors
@@ -485,14 +472,17 @@ class Attribute(_Attribute):
             self.__attr_value = attr_value
             self.valueChanged.emit(attr_value)
 
-    @log.debug_it
+    def __on_config_event(self, attr_cfg_event):
+        task(self._on_config_event_task_safe, attr_cfg_event)
+
+    #@log.debug_it
     def _on_config_event_task_safe(self, attr_cfg_event):
         try:
             self.__on_config_event_task(attr_cfg_event)
         except:
             log.error("Exception in config event callback", exc_info='debug')
 
-    @log.debug_it
+    #@log.debug_it
     def __on_config_event_task(self, attr_cfg_event):
         self.__attr_config = cfg = attr_config_t2q(attr_cfg_event.attr_conf)
         value = self.__attr_value
@@ -545,7 +535,7 @@ class TangoFactory(_Factory):
     def __init__(self):
         _Factory.__init__(self)
 
-    @log.debug_it
+    #@log.debug_it
     def get_database(self, name=None):
         if name is None:
             name = Tango.ApiUtil.get_env_var("TANGO_HOST")
@@ -557,13 +547,13 @@ class TangoFactory(_Factory):
             database = self.add_child(name, Database(name))         
         return database
 
-    @log.debug_it
+    #@log.debug_it
     def get_device(self, name):
         #TODO: slit name into database and device
         database = self.get_database()
         return database.get_device(name)
 
-    @log.debug_it
+    #@log.debug_it
     def get_attribute(self, name):
         #TODO: split properly
         dev_name, name = name.rsplit("/", 1)
@@ -596,13 +586,13 @@ def main():
     f = Factory()
     attr = f.get_attribute(attr_name)
 
-    @log.info_it
+    #@log.info_it
     def value_changed(new_value):
-        log.debug("event value: %s", new_value)
+        log.info("Event: %s %s", new_value.label, new_value)
     attr.valueChanged.connect(value_changed)
 
     v = attr.read()
-    log.info("Read value: %s", v)
+    log.info("Read: %s: %s", v.label, v)
 
     count = 0
     try:
@@ -610,8 +600,7 @@ def main():
             time.sleep(1)
             count += 1
             if count == 3:
-                log.warning("delete attr")
-                del value_changed
+                log.warning("Deleting attr")
                 del attr
     except KeyboardInterrupt:
         pass
