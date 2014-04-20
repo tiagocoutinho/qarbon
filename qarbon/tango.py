@@ -570,42 +570,7 @@ def Factory():
 
 
 def main():
-    import sys
-    import time
-    from qarbon import config
-    
-    config.EXECUTOR = "thread"
-    config.MAX_WORKERS = 1
-    
-    log.initialize(log_level='debug')
-    
-    attr_name = 'sys/tg_test/1/double_scalar'
-    if len(sys.argv) > 1:
-        attr_name = sys.argv[1]
-
-    f = Factory()
-    attr = f.get_attribute(attr_name)
-
-    #@log.info_it
-    def value_changed(new_value):
-        log.info("Event: %s %s", new_value.label, new_value)
-    attr.valueChanged.connect(value_changed)
-
-    v = attr.read()
-    log.info("Read: %s: %s", v.label, v)
-
-    count = 0
-    try:
-        while True:
-            time.sleep(1)
-            count += 1
-            if count == 3:
-                log.warning("Deleting attr")
-                del attr
-    except KeyboardInterrupt:
-        pass
-
+    pass
 
 if __name__ == "__main__":
     main()
-
