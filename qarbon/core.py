@@ -214,7 +214,7 @@ class AttributeValue(object):
         self.__r_quality = r_quality
         self.__w_value = w_value
         self.__exc_info = exc_info
-        self.__config= config        
+        self.__config= config
 
     def __getattr__(self, name):
         return getattr(self.__config, name)
@@ -291,6 +291,10 @@ warning_range = {0.warning_range}
     @property
     def w_value(self):
         return self.__w_value
+
+    @property
+    def exc_info(self):
+        return self.__exc_info
 
     def is_error(self):
         return self.__exc_info is not None
