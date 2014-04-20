@@ -421,7 +421,6 @@ class Device(BaseObject):
 class Attribute(BaseObject):
 
     valueChanged = Signal(object)
-    errorOccurred = Signal(object)
 
     def __init__(self, name, parent=None):
         BaseObject.__init__(self, name, parent=parent)
