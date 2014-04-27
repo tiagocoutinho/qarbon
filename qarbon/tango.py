@@ -11,6 +11,7 @@
 
 """Tango plugin for qarbon."""
 
+import re
 import weakref
 import functools
 
@@ -24,12 +25,21 @@ from qarbon.core import Database as _Database
 from qarbon.core import Device as _Device
 from qarbon.core import Attribute as _Attribute
 from qarbon.core import Quality, Access, DisplayLevel
-from qarbon.core import AttributeConfig, AttributeValue
-from qarbon.core import NullAttributeConfig, NullAttributeValue
+from qarbon.value import Value, NullValue
+from qarbon.value import AttributeValue #, NullAttributeValue
+from qarbon.value import AttributeConfig #, NullAttributeConfig
 
 from qarbon.util import callable_weakref
 
 __NO_STR_VALUE = Tango.constants.AlrmValueNotSpec, Tango.constants.StatusNotSet
+
+_DEFAULT_TANGO = Tango.ApiUtil.get_env_var("TANGO_HOST")
+
+try:
+    _DEFAULT_TANGO_HOST, _DEFAULT_TANGO_PORT = _DEFAULT_TANGO.split(":")
+except:
+    _DEFAULT_TANGO_HOST, _DEFAULT_TANGO_PORT = None, None
+        
 
 # The exception reasons that will force switching from events to polling
 # API_AttributePollingNotStarted - the attribute does not support events. 
@@ -321,16 +331,28 @@ class Database(_Database):
 
     def __init__(self, name, parent=None):
         _Database.__init__(self, name, parent=parent)
-        self.__database = task(Tango.Database, name)
+        host, port = name.split(":")
+        self.__database = task(Tango.Database, host, port)
 
+    @property
     def hw_database(self):
         return self.__database.result()
 
     def get_device(self, name):
-        name = name.lower()
-        device = self.get_child(name)
+        dev_info = Validator.device(name)
+        if dev_info is None:
+            raise ValueError("Invalid device name '{0}'".format(name))            
+        dev_name = dev_info.get("devname")
+        if dev_name is None:
+            dev_alias = dev_info.get("devalias")
+            try:
+                dev_name = self.hw_database.get_device_alias(dev_alias)
+            except:
+                dev_name = dev_alias
+        dev_name = dev_name.lower()
+        device = self.get_child(dev_name)
         if device is None:
-            device = self.add_child(name, Device(name, parent=self))         
+            device = self.add_child(dev_name, Device(dev_name, parent=self))
         return device
     
 
@@ -345,10 +367,11 @@ class Device(_Device):
         return self.__device.result()
 
     def get_attribute(self, name):
-        name = name.lower()
-        attr = self.get_child(name)
+        name_lower = name.lower()
+        attr = self.get_child(name_lower)
         if attr is None:
-            attr = self.add_child(name, Attribute(name, parent=self))
+            db_name = self.get_parent().name
+            attr = self.add_child(name_lower, Attribute(name, parent=self))
         return attr
 
     def __execute(self, cmd_name, *args, **kwargs):
@@ -400,8 +423,8 @@ class Attribute(_Attribute):
 
     def __init__(self, name, parent=None):
         _Attribute.__init__(self, name, parent=parent)
-        self.__attr_value = NullAttributeValue
-        self.__attr_config = NullAttributeConfig
+        self.__attr_value = None #NullAttributeValue
+        self.__attr_config = None #NullAttributeConfig
         self.__event_ids = set()
 
         # make sure that there is an initial value in cache
@@ -525,7 +548,7 @@ class Attribute(_Attribute):
             return
         self.__attr_config = cfg = attr_config_t2q(attr_cfg_event.attr_conf)
         value = self.__attr_value
-        if value is NullAttributeValue:
+        if value is None: # NullAttributeValue:
             value = self.read()
         else:
             try:
@@ -536,7 +559,7 @@ class Attribute(_Attribute):
 
     def __get_config(self):
         cfg = self.__attr_config
-        if cfg is NullAttributeConfig:
+        if cfg is None: # NullAttributeConfig:
             hw = self.device.hw_device
             attr_cfg_f = task(hw.get_attribute_config, self.name)
             cfg = TangoAttributeConfigFuture(attr_cfg_f)
@@ -545,7 +568,7 @@ class Attribute(_Attribute):
 
     def __get_value(self):
         value = self.__attr_value
-        if value is NullAttributeValue:
+        if value is None: # NullAttributeValue:
             value = self.__read()
         return value
 
@@ -570,34 +593,60 @@ class Attribute(_Attribute):
 
 
 class TangoFactory(_Factory):
+    
+    schemes = "tango",
 
     def __init__(self):
         _Factory.__init__(self)
 
-    #@log.debug_it
     def get_database(self, name=None):
         if name is None:
-            name = Tango.ApiUtil.get_env_var("TANGO_HOST")
+            name = _DEFAULT_TANGO
             if name is None:
                 raise KeyError("Default tango database not defined")
-        name = name.lower()
-        database = self.get_child(name)
+        name_lower = name.lower()
+        db_info = Validator.database(name_lower)
+        if db_info is None:
+            raise ValueError("Invalid database name '{0}'".format(name))
+        db_name = "{0[host]}:{0[port]}".format(db_info)
+        database = self.get_child(db_name)
         if database is None:
-            database = self.add_child(name, Database(name))         
+            database = self.add_child(db_name, Database(db_name, parent=self))         
         return database
 
-    #@log.debug_it
     def get_device(self, name):
-        #TODO: slit name into database and device
-        database = self.get_database()
-        return database.get_device(name)
+        dev_info = Validator.device(name)
+        if dev_info is None:
+            raise ValueError("Invalid device name '{0}'".format(name))
+        dev_name = dev_info.get("devname")
+        if dev_name is None:
+            dev_name = dev_info.get("devalias")
+        db_name = "{0[host]}:{0[port]}".format(dev_info)
+        database = self.get_database(db_name)
+        return database.get_device(dev_name)
 
-    #@log.debug_it
     def get_attribute(self, name):
-        #TODO: split properly
-        dev_name, name = name.rsplit("/", 1)
-        device = self.get_device(dev_name)
-        return device.get_attribute(name)       
+        attr_info = Validator.attribute(name)
+        if attr_info is None:
+            raise ValueError("Invalid attribute name '{0}'".format(name))
+        db_name = "{0[host]}:{0[port]}".format(attr_info)
+        db = self.get_database(db_name)
+        dev_name = attr_info.get("devname")
+        if dev_name is None:
+            dev_name = attr_info.get("devalias")
+            if dev_name is None:
+                attr_alias = attr_info.get("attralias")
+                try:
+                    attrname = db.hw_database.get_attribute_alias(attr_alias)
+                except:
+                    attrname = attr_alias
+                attr_info = Validator.attribute(attrname)
+                dev_name = attr_info.get("devname")
+        device = db.get_device(dev_name)
+        attr_name = attr_info.get("attrname1")
+        if attr_name is None:
+            attr_name = attr_info.get("attrname2")
+        return device.get_attribute(attr_name)
 
 
 __factory = None
@@ -606,6 +655,95 @@ def Factory():
     if __factory is None:
         __factory = TangoFactory()
     return __factory
+
+
+class Validator(object):
+
+    _uri_gen_delims = "\:\/\?\#\[\]\@"
+    # theoreticaly sub_delims should include '+' but we are more permissive
+    # here in tango
+    #_uri_sub_delims = "\!\$\&\'\(\)\*\+\,\;\="
+    _uri_sub_delims = "\!\$\&\'\(\)\*\,\;\="
+    _uri_reserved = _uri_gen_delims + _uri_sub_delims
+    tango_word = '[^' + _uri_reserved + ']+'
+
+    db = '(?P<host>([\w\-_]+\.)*[\w\-_]+):(?P<port>\d{1,5})'
+    device = '(?P<devname>{0}/{0}/{0})'.format(tango_word)
+    devalias = '(?P<devalias>{0})'.format(tango_word)
+    attralias = '(?P<attralias>{0})'.format(tango_word)
+    
+    Scheme = '(?P<scheme>tango)'
+    Database = '({0}://)?{1}'.format(Scheme, db)
+    Device = '({0}/)?({1}|{2})'.format(Database, device, devalias)
+    Attribute = '({0}/)?({1}/(?P<attrname1>{2})$)|({3}/(?P<attrname2>{2})$)|({4}$)'.format(Database, device, tango_word, devalias, attralias)
+
+    SchemeRE = re.compile("^{0}$".format(Scheme))
+    DatabaseRE = re.compile("^{0}$".format(Database))
+    DeviceRE = re.compile("^{0}$".format(Device))
+    AttributeRE = re.compile("^{0}$".format(Attribute))
+    
+    #TODO missing device of type "tango://a/b/c"
+
+    @staticmethod
+    def is_scheme(scheme):
+        return Validator.SchemeRE.match(scheme) is not None
+
+    @staticmethod
+    def is_database(database):
+        return Validator.DatabaseRE.match(database) is not None
+
+    @staticmethod
+    def is_device(device):
+        return Validator.DeviceRE.match(device) is not None
+
+    @staticmethod
+    def is_attribute(attribute):
+        return Validator.AttributeRE.match(attribute) is not None
+
+    @staticmethod
+    def scheme(scheme):
+        result = Validator.SchemeRE.match(scheme)
+        if result is None:
+            return
+        return result.groupdict()
+
+    @staticmethod
+    def database(database):
+        result = Validator.DatabaseRE.match(database)
+        if result is None:
+            return
+        result = result.groupdict()
+        if result.get("scheme") is None:
+            result["scheme"] = "tango"
+        return result
+
+    @staticmethod
+    def device(device):
+        result = Validator.DeviceRE.match(device)
+        if result is None:
+            return
+        result = result.groupdict()
+        if result.get("scheme") is None:
+            result["scheme"] = "tango"
+        if result.get("host") is None:
+            result["host"] = _DEFAULT_TANGO_HOST
+        if result.get("port") is None:
+            result["port"] = _DEFAULT_TANGO_PORT
+        return result
+ 
+    @staticmethod
+    def attribute(attribute):
+        result = Validator.AttributeRE.match(attribute)
+        if result is None:
+            return
+        result = result.groupdict()
+        if result.get("scheme") is None:
+            result["scheme"] = "tango"
+        if result.get("host") is None:
+            result["host"] = _DEFAULT_TANGO_HOST
+        if result.get("port") is None:
+            result["port"] = _DEFAULT_TANGO_PORT
+        return result
 
 
 def main():
