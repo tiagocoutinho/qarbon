@@ -8,13 +8,11 @@ qarbon.util
    .. autosummary::
       :nosignatures:
          
-      isSequence
-      isString
-      moduleDirectory
-      moduleImport
-   
-   
-
+      is_string
+      is_sequence
+      module_directory
+      import_module
+      callable_weakref
    
    
    

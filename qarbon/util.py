@@ -10,7 +10,7 @@
 
 """Helper functions."""
 
-__all__ = ['is_string', 'is_sequence', 'module', 'module_directory',
+__all__ = ['is_string', 'is_sequence', 'module_directory',
            'import_module', 'callable_weakref']
 
 import os
@@ -67,7 +67,7 @@ def is_sequence(obj, inc_string=False):
         return isinstance(obj, __seq_klasses) and not is_string(obj)
 
 
-def module(name):
+def __import_module(name):
     """Import module, returning the module after the last dot.
 
     :param name: name of the module to be imported
@@ -119,7 +119,7 @@ def import_module(name, package=None):
                 break
             level += 1
         name = __resolve_name(name[level:], package, level)
-    return module(name)
+    return __import_module(name)
 
 
 class _MethodWeakref(object):

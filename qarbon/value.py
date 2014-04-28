@@ -9,6 +9,8 @@
 # See LICENSE.txt for more info.
 # ----------------------------------------------------------------------------
 
+"""Value definition."""
+
 __all__ = ["AttributeConfig", "NullAttributeConfig",
            "Value", "NullValue",
            "AttributeValue", "NullAttributeValue"]

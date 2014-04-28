@@ -84,6 +84,9 @@ __EXECUTOR_MAP = dict(thread=futures.ThreadPoolExecutor,
 
 __EXECUTOR = None
 def Executor():
+    """
+    Returns the global executor.
+    """
     global __EXECUTOR
     if __EXECUTOR is None:
         from qarbon import config
@@ -93,20 +96,36 @@ def Executor():
 
 
 def submit(fn, *args, **kwargs):
+    """
+    Submit a task to be executed.
+
+    :param fn: function(task) to be executed
+    :param args: list of arguments to be passed to the task
+    :param kwargs: keyword arguments to be passed to the task
+    """
     return Executor().submit(fn, *args, **kwargs)
-submit.__doc__ = futures.Executor.submit.__doc__
 
 task = submit
 
+
 def wait(fs, timeout=None, return_when=futures.ALL_COMPLETED):
+    """
+    Wait for the futures/asynchs in the given sequence to complete.
+    """
     return futures.wait(fs, timeout=timeout, return_when=return_when)
-wait.__doc__ = futures.wait.__doc__
+
 
 def map(fn, *iterables, **kwargs):
+    """
+    Returns an iterator equivalent to map(fn, iter).
+    """
     return Executor().map(fn, *iterables, **kwargs)
-map.__doc__ = futures.Executor.map.__doc__
+
 
 def shutdown(wait=True):
+    """
+    Shuts down the executor engine.
+    """
     global __EXECUTOR
     if __EXECUTOR is None:
         return

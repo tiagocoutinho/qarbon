@@ -18,7 +18,7 @@ import inspect
 import threading
 
 from qarbon import log
-from qarbon.util import moduleImport
+from qarbon.util import import_module
 from qarbon.external.qt import QtCore, QtGui
 
 
@@ -56,7 +56,7 @@ def getWidgetClasses(module_name):
     :rtype: dict
     """
     widgets = {}
-    module = moduleImport(module_name)
+    module = import_module(module_name)
 
     for name, value in inspect.getmembers(module, isWidgetClass):
         if inspect.getmodule(value) != module:

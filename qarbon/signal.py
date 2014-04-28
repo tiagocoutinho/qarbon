@@ -20,7 +20,28 @@ from .util import callable_weakref
 
 
 class Signal(object):
+    """
+    Represents typical Signal pattern with connect, disconnect and
+    emit. Can be used as a descriptor. Example::
+
+        class Car(object):
     
+            temperatureChanged = Signal(float)
+
+            def set_temperature(self, temp):
+                self.__temp = temp
+                self.temperatureChanged.emit(temp)
+            
+        car = Car()
+
+        def on_temp_changed(temp):
+            print("Car temperature changed to {0}".format(temp))
+        
+        car.temperatureChanged.connect(on_temp_changed)
+
+        car.set_temperature(13.4)
+    """
+
     def __init__(self, *args, **kwargs):
         self.__args = args
         self.__name = kwargs.pop('name', '')
@@ -99,7 +120,7 @@ class Signal(object):
     # -- API ------------------------------------------------------------------
     
     def slots(self):
-        """Returns the list of connected slots"""
+        """Returns the list of connected slots."""
         slots, all_slots = [], self.__slots
         for slot in all_slots:
             slot = slot()
@@ -108,17 +129,20 @@ class Signal(object):
         return slots
 
     def connect(self, slot):
+        """Connect a slot to this signal."""
         slot_ref = callable_weakref(slot, self.__on_slot_deleted)
         self.__slots.append(slot_ref)
         if self.__emit_on_connect and self.__cache is not None:
             self.__emit(slot, *self.__cache)
 
     def disconnect(self, slot):
+        """Disconnect the slot from this signal."""
         slot_ref = callable_weakref(slot)
         self.__disconnect(slot_ref)
 
     def emit(self, *args, **kwargs):
-        self.__cache = args, kwargs
+        """emit signal."""
+        self.set_cache(*args, **kwargs)
         slots = self.__slots
         for slot in slots:
             self.__emit(slot(), args, kwargs)

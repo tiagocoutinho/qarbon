@@ -16,10 +16,15 @@ qarbon
 
     qarbon.color
     qarbon.config
+    qarbon.core
     qarbon.executor
-    qarbon.meta
+    qarbon.log
+    qarbon.node
+    qarbon.plugin
     qarbon.release
+    qarbon.signal
     qarbon.util
+    qarbon.value
 
 qarbon.qt.gui
 -------------

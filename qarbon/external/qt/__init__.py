@@ -25,7 +25,6 @@ except ImportError:
 import qarbon.config
 
 from qarbon import log
-from qarbon.util import moduleDirectory
 
 
 __QT = None

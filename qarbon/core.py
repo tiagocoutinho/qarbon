@@ -11,16 +11,14 @@
 
 """Model core module."""
 
-__all__ = ["Quality", "Access", "DisplayLevel", "DataAccess", "DataType", 
-           "State", "Manager", "IScheme", "IDatabase", "IDevice", "IAttribute",
-           "Scheme", "Database", "Device", "Attribute"]
+__all__ = ["Quality", "Access", "DisplayLevel", "DataType", "State", 
+           "Manager", "IScheme", "IDatabase", "IDevice", "IAttribute",
+           "Database", "Device", "Attribute"]
 
 import os
 import re
 import abc
-import imp
 import sys
-import inspect
 import collections
 
 from qarbon.external.enum import Enum
@@ -29,6 +27,7 @@ from qarbon import config
 from qarbon.node import Node
 from qarbon.signal import Signal
 from qarbon.util import is_string
+from qarbon.plugin import get_plugins, get_plugin_info
 
 _PY3 = sys.version_info[0] > 2
 
@@ -36,6 +35,7 @@ ErrorStr = ErrorRepr = "Error!"
 
 
 class Quality(Enum):
+    """Quality enum."""
     Valid, \
     Invalid, \
     Alarm, \
@@ -45,6 +45,7 @@ class Quality(Enum):
 
 
 class Access(Enum):
+    """Access enum."""
     Read, \
     ReadWithWrite, \
     Write, \
@@ -53,17 +54,12 @@ class Access(Enum):
 
 
 class DisplayLevel(Enum):
+    """Display level enum."""
     Operator, \
     Expert, \
     Developer, \
     Administrator, \
     _Invalid = range(5)
-
-
-class DataAccess(Enum):
-    """Data access enum"""
-
-    ReadOnly, ReadWithWrite, WriteOnly, ReadWrite, _Invalid = range(5)
 
 
 class DataType(Enum):
@@ -126,7 +122,7 @@ class DataType(Enum):
     @staticmethod
     def to_data_type(dtype):
         """Convert from type to DataType"""
-        if isString(dtype):
+        if is_string(dtype):
             dtype = dtype.lower()
         return DataType.__DTYPE_MAP[dtype]
 
@@ -139,48 +135,13 @@ class State(Enum):
     Running, Alarm, Disable, Unknown, Disconnected, _Invalid = range(16)
 
 
-QARBON_PLUGIN_MAGIC = "__qarbon_plugin__"
-
-
-def get_plugin_candidates():
-    """Get candidate plugin directories"""
-    plugins = []
-    for path in config.PLUGIN_PATH:
-        for elem in os.listdir(path):
-            if elem.startswith(".") or elem.startswith("."):
-                continue
-            full_elem = os.path.join(path, elem)
-            if not os.path.isdir(full_elem):
-                continue
-            if not os.path.exists(os.path.join(full_elem, "__init__.py")):
-                continue
-            plugins.append((path, elem))
-    return plugins
-
-
-def get_plugins():
-    plugins = []
-    plugin_candidates = get_plugin_candidates()
-    for path, plugin in plugin_candidates:
-        try:
-            plugin_info = imp.find_module(plugin, [path])
-        except ImportError:
-            continue
-        plugin_module = imp.load_module(plugin, *plugin_info)
-        if hasattr(plugin_module, QARBON_PLUGIN_MAGIC):
-            plugins.append(plugin_module)
-        for member_name, member in inspect.getmembers(plugin_module):
-            if inspect.isclass(member) and hasattr(member, QARBON_PLUGIN_MAGIC):
-                plugins.append(member)
-    return plugins
-
-
 def get_control_plugins():
+    """Returns the list of control plugins."""
     plugins = []
     for plugin in get_plugins():
-        magic = getattr(plugin, QARBON_PLUGIN_MAGIC)
-        if isinstance(magic, collections.Mapping):
-            ptype = magic.get("type")
+        info = get_plugin_info(plugin)
+        if isinstance(info, collections.Mapping):
+            ptype = info.get("type")
             if ptype == "Control":
                 plugins.append(plugin)
     return plugins
@@ -229,15 +190,18 @@ class _Manager(object):
 
 __MANAGER = _Manager()
 def Manager():
+    """Returns the one and only core Manager."""
     return __MANAGER
 
 
 class IScheme(Node):
-    __metaclass__ = abc.ABCMeta
-
     """
     Base scheme class.
+
+    Plugins should provide an implementation of this class.
     """
+
+    __metaclass__ = abc.ABCMeta
 
     schemes = ()
 
@@ -260,11 +224,14 @@ class IScheme(Node):
 
 
 class IDatabase(Node):
-    __metaclass__ = abc.ABCMeta
+    """
+    Base database class.
 
+    Plugins should provide an implementation of this class
+    as a response to a get_database from their Scheme
     """
-    Base database class
-    """
+
+    __metaclass__ = abc.ABCMeta
 
     def __init__(self, name, parent=None):
         Node.__init__(self, name, parent=parent)
@@ -275,11 +242,14 @@ class IDatabase(Node):
 
 
 class IDevice(Node):
-    __metaclass__ = abc.ABCMeta
-
     """
     Base device class.
+
+    Plugins should provide an implementation of this class
+    as a response to a get_device from their Scheme
     """
+
+    __metaclass__ = abc.ABCMeta
 
     def __init__(self, name, parent=None):
         Node.__init__(self, name, parent=parent)
@@ -298,12 +268,16 @@ class IDevice(Node):
 
 
 class IAttribute(Node):
-    __metaclass__ = abc.ABCMeta
-
     """
     Base attribute class.
+
+    Plugins should provide an implementation of this class
+    as a response to a get_attribute from their Scheme
     """
 
+    __metaclass__ = abc.ABCMeta
+
+    #: Signal emited when the attribute value changes
     valueChanged = Signal(object)
 
     def __init__(self, name, parent=None):
@@ -323,12 +297,15 @@ class IAttribute(Node):
 
 
 def Database(name=None):
+    """Helper to get the database corresponding to the given name."""
     return Manager().get_database(name)
 
 
 def Device(name):
+    """Helper to get the device corresponding to the given name."""
     return Manager().get_device(name)
 
 
 def Attribute(name):
+    """Helper to get the attribute corresponding to the given name."""
     return Manager().get_attribute(name)

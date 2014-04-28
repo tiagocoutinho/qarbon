@@ -427,7 +427,7 @@ class Attribute(IAttribute):
 
         # make sure that there is an initial value in cache
         # so that slots get called immediately when they connect
-        self.valueChanged.set_cache(self.__attr_value)
+        #self.valueChanged.set_cache(self.__attr_value)
 
         # assign initialization to separate task
         task(self._init_safe)
@@ -546,7 +546,7 @@ class Attribute(IAttribute):
             return
         self.__attr_config = cfg = attr_config_t2q(attr_cfg_event.attr_conf)
         value = self.__attr_value
-        if value is None: # NullAttributeValue:
+        if value is None:
             value = self.read()
         else:
             try:

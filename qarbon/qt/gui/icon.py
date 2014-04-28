@@ -51,7 +51,7 @@ import os
 import qarbon
 from qarbon.config import NAMESPACE
 from qarbon.core import State
-from qarbon.util import isString
+from qarbon.util import is_string
 from qarbon.external.qt import QtGui
 from qarbon.qt.gui.style import getStyle
 
@@ -283,7 +283,7 @@ def getIcon(icon):
         return QtGui.QIcon()
     elif isinstance(icon, QtGui.QIcon):
         return QtGui.QIcon(icon)
-    elif isString(icon):
+    elif is_string(icon):
         if icon.startswith(":"):
             return getQarbonIcon(icon)
         elif ":" in icon:
