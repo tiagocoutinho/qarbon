@@ -17,19 +17,17 @@ import functools
 
 import PyTango as Tango
 
-from qarbon import log
 from qarbon.external.pint import Quantity
-from qarbon.executor import task
-from qarbon.core import Factory as _Factory
-from qarbon.core import Database as _Database
-from qarbon.core import Device as _Device
-from qarbon.core import Attribute as _Attribute
-from qarbon.core import Quality, Access, DisplayLevel
-from qarbon.value import Value, NullValue
-from qarbon.value import AttributeValue #, NullAttributeValue
-from qarbon.value import AttributeConfig #, NullAttributeConfig
 
+from qarbon import log
 from qarbon.util import callable_weakref
+from qarbon.executor import task
+from qarbon.core import Quality, Access, DisplayLevel
+from qarbon.core import IScheme, IDatabase, IDevice, IAttribute
+from qarbon.value import Value, NullValue
+from qarbon.value import AttributeValue
+from qarbon.value import AttributeConfig
+
 
 __NO_STR_VALUE = Tango.constants.AlrmValueNotSpec, Tango.constants.StatusNotSet
 
@@ -327,10 +325,10 @@ class TangoAttributeValueFuture(TangoFuture):
         return repr(self._get_value())
 
 
-class Database(_Database):
+class Database(IDatabase):
 
     def __init__(self, name, parent=None):
-        _Database.__init__(self, name, parent=parent)
+        IDatabase.__init__(self, name, parent=parent)
         host, port = name.split(":")
         self.__database = task(Tango.Database, host, port)
 
@@ -356,10 +354,10 @@ class Database(_Database):
         return device
     
 
-class Device(_Device):
+class Device(IDevice):
 
     def __init__(self, name, parent=None):
-        _Device.__init__(self, name, parent=parent)
+        IDevice.__init__(self, name, parent=parent)
         self.__device = task(Tango.DeviceProxy, name)
 
     @property
@@ -419,10 +417,10 @@ def init_attribute(attr_ref):
         attr._init_safe()
 
 
-class Attribute(_Attribute):
+class Attribute(IAttribute):
 
     def __init__(self, name, parent=None):
-        _Attribute.__init__(self, name, parent=parent)
+        IAttribute.__init__(self, name, parent=parent)
         self.__attr_value = None #NullAttributeValue
         self.__attr_config = None #NullAttributeConfig
         self.__event_ids = set()
@@ -560,7 +558,7 @@ class Attribute(_Attribute):
     def __get_config(self):
         cfg = self.__attr_config
         if cfg is None: # NullAttributeConfig:
-            hw = self.device.hw_device
+            hw = self.d.hw_device
             attr_cfg_f = task(hw.get_attribute_config, self.name)
             cfg = TangoAttributeConfigFuture(attr_cfg_f)
             self.__attr_config = cfg
@@ -592,12 +590,12 @@ class Attribute(_Attribute):
         return self.__get_value()
 
 
-class TangoFactory(_Factory):
+class TangoScheme(IScheme):
     
     schemes = "tango",
 
     def __init__(self):
-        _Factory.__init__(self)
+        IScheme.__init__(self)
 
     def get_database(self, name=None):
         if name is None:
@@ -649,12 +647,12 @@ class TangoFactory(_Factory):
         return device.get_attribute(attr_name)
 
 
-__factory = None
-def Factory():
-    global __factory
-    if __factory is None:
-        __factory = TangoFactory()
-    return __factory
+__scheme = None
+def Scheme():
+    global __scheme
+    if __scheme is None:
+        __scheme = TangoScheme()
+    return __scheme
 
 
 class Validator(object):
@@ -667,7 +665,7 @@ class Validator(object):
     _uri_reserved = _uri_gen_delims + _uri_sub_delims
     tango_word = '[^' + _uri_reserved + ']+'
 
-    db = '(?P<host>([\w\-_]+\.)*[\w\-_]+):(?P<port>\d{1,5})'
+    db = '(?P<host>([\w\-]+\.)*[\w\-]+):(?P<port>\d{1,5})'
     device = '(?P<devname>{0}/{0}/{0})'.format(tango_word)
     devalias = '(?P<devalias>{0})'.format(tango_word)
     attralias = '(?P<attralias>{0})'.format(tango_word)
@@ -753,8 +751,8 @@ def main():
     attr_name = 'sys/tg_test/1/double_scalar'
     if len(sys.argv) > 1:
         attr_name = sys.argv[1]    
-    factory = Factory()
-    attr = factory.get_attribute(attr_name)
+    scheme = Scheme()
+    attr = scheme.get_attribute(attr_name)
 
     def on_value_changed(e):
         print("Event str: %s" % e)

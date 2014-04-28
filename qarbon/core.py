@@ -12,22 +12,28 @@
 """Model core module."""
 
 __all__ = ["Quality", "Access", "DisplayLevel", "DataAccess", "DataType", 
-           "State", "Manager", "Factory", "Device", "Attribute"]
+           "State", "Manager", "IScheme", "IDatabase", "IDevice", "IAttribute",
+           "Scheme", "Database", "Device", "Attribute"]
 
+import os
+import re
 import abc
+import imp
 import sys
-import weakref
-import datetime
+import inspect
+import collections
 
 from qarbon.external.enum import Enum
 
-from . import log
-from .util import isString
-from .signal import Signal
+from qarbon import config
+from qarbon.node import Node
+from qarbon.signal import Signal
+from qarbon.util import is_string
 
 _PY3 = sys.version_info[0] > 2
 
 ErrorStr = ErrorRepr = "Error!"
+
 
 class Quality(Enum):
     Valid, \
@@ -61,7 +67,7 @@ class DataAccess(Enum):
 
 
 class DataType(Enum):
-    """Data type enum"""
+    """Data type enum."""
 
     Integer, Float, String, Boolean, State, Enumeration, \
       Binary, _Invalid = range(8)
@@ -112,13 +118,13 @@ class DataType(Enum):
     }
 
     @staticmethod
-    def toPythonType(dtype):
+    def to_python_type(dtype):
         """Convert from DataType to python type"""
-        dtype = DataType.toDataType(dtype)
+        dtype = DataType.to_data_type(dtype)
         return DataType.__PYTYPE_MAP[dtype]
 
     @staticmethod
-    def toDataType(dtype):
+    def to_data_type(dtype):
         """Convert from type to DataType"""
         if isString(dtype):
             dtype = dtype.lower()
@@ -126,24 +132,97 @@ class DataType(Enum):
 
 
 class State(Enum):
-    """State enum"""
+    """State enum."""
     # On, Moving, Fault, Alarm, Unknown, _Invalid = range(6)
 
     On, Off, Close, Open, Insert, Extract, Moving, Standby, Fault, Init, \
     Running, Alarm, Disable, Unknown, Disconnected, _Invalid = range(16)
 
 
+QARBON_PLUGIN_MAGIC = "__qarbon_plugin__"
+
+
+def get_plugin_candidates():
+    """Get candidate plugin directories"""
+    plugins = []
+    for path in config.PLUGIN_PATH:
+        for elem in os.listdir(path):
+            if elem.startswith(".") or elem.startswith("."):
+                continue
+            full_elem = os.path.join(path, elem)
+            if not os.path.isdir(full_elem):
+                continue
+            if not os.path.exists(os.path.join(full_elem, "__init__.py")):
+                continue
+            plugins.append((path, elem))
+    return plugins
+
+
+def get_plugins():
+    plugins = []
+    plugin_candidates = get_plugin_candidates()
+    for path, plugin in plugin_candidates:
+        try:
+            plugin_info = imp.find_module(plugin, [path])
+        except ImportError:
+            continue
+        plugin_module = imp.load_module(plugin, *plugin_info)
+        if hasattr(plugin_module, QARBON_PLUGIN_MAGIC):
+            plugins.append(plugin_module)
+        for member_name, member in inspect.getmembers(plugin_module):
+            if inspect.isclass(member) and hasattr(member, QARBON_PLUGIN_MAGIC):
+                plugins.append(member)
+    return plugins
+
+
+def get_control_plugins():
+    plugins = []
+    for plugin in get_plugins():
+        magic = getattr(plugin, QARBON_PLUGIN_MAGIC)
+        if isinstance(magic, collections.Mapping):
+            ptype = magic.get("type")
+            if ptype == "Control":
+                plugins.append(plugin)
+    return plugins
+
+
 class _Manager(object):
-    
+
+    _SchemeRE = re.compile('^(?P<scheme>[\w\-]+)://(?P<trail>.*)')
+
     def __init__(self):
-        pass
+        self.__plugin_cache = None
 
-    def get_device(self):
-        pass
+    def get_device(self, name):
+        match = self._SchemeRE.match(name)
+        scheme = config.DEFAULT_SCHEME
+        if match:
+            scheme = match.group("scheme")
+        plugin = self.get_plugin(scheme)
+        return plugin.Device(name)
 
-    def get_plugin(self):
-        pass
+    def __get_plugins(self):
+        plugins = self.__plugin_cache
+        if plugins is None:
+            plugins = {}
+            for plugin in get_control_plugins():
+                for scheme in plugin.schemes:
+                    if scheme in plugins:
+                        log.error("Conflicting plugins for scheme %s", scheme)
+                        continue
+                    plugins[scheme] = plugin
+            self.__plugin_cache = plugins
+        return plugins
 
+    def reload_plugins(self):
+        self.__plugin_cache = None
+        return self.__get_plugins()
+
+    def get_plugin(self, scheme):
+        try:
+            return self.__get_plugins()[scheme]
+        except KeyError:
+            raise KeyError("Unknown plugin '{0}'".format(scheme))
     def register_plugin(self):
         pass
 
@@ -153,65 +232,19 @@ def Manager():
     return __MANAGER
 
 
-class BaseObject(object):
+class IScheme(Node):
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, name, parent=None):
-        self.__name = name
-        self.__parent = parent
-        self.__children = weakref.WeakValueDictionary()
-
-    @property
-    def name(self):
-        return self.__name
-
-    def get_parent(self):
-        return self.__parent
-
-    def get_children(self):
-        return self.__children
-    
-    def get_child(self, name):
-        return self.__children.get(name)
-    
-    def has_child(self, name):
-        return name in self.__children
-
-    def add_child(self, name, child):
-        self.__children[name] = child
-        return child
-
-     # -- simpler repr and str ------------------------------------------------
-#    def __repr__(self):
-#        cname, name = self.__class__.__name__, self.__name
-#        return "{0}(name={1})".format(cname, name)
-
-#    def __str__(self):
-#        cname, name = self.__class__.__name__, self.__name
-#        return "{0}({1})".format(cname, name)
-
-    # -- more complete repr and str -------------------------------------------
-    def __repr__(self):
-       cname, parent, name = self.__class__.__name__, self.__parent, self.__name
-       if parent is None:
-           return "{0}(name={1})".format(cname, name)
-       return "{0}(name={1}, parent={2!r})".format(cname, name, parent)
- 
-    def __str__(self):
-       cname, parent, name = self.__class__.__name__, self.__parent, self.__name
-       if parent is None:
-           return "{0}({1})".format(cname, name)
-       return "{0}({1}, {2})".format(cname, name, parent)
-
-
-class Factory(BaseObject):
+    """
+    Base scheme class.
+    """
 
     schemes = ()
 
     def __init__(self, name=None, parent=None):
         if name is None:
             name = self.__class__.__name__
-        BaseObject.__init__(self, name, parent=parent)
+        Node.__init__(self, name, parent=parent)
 
     @abc.abstractmethod
     def get_database(self, name):
@@ -226,20 +259,30 @@ class Factory(BaseObject):
         pass
 
 
-class Database(BaseObject):
+class IDatabase(Node):
+    __metaclass__ = abc.ABCMeta
+
+    """
+    Base database class
+    """
 
     def __init__(self, name, parent=None):
-        BaseObject.__init__(self, name, parent=parent)
+        Node.__init__(self, name, parent=parent)
 
     @abc.abstractmethod
-    def get_device(self, device_name):
+    def get_device(self, object_name):
         pass
 
 
-class Device(BaseObject):
+class IDevice(Node):
+    __metaclass__ = abc.ABCMeta
+
+    """
+    Base device class.
+    """
 
     def __init__(self, name, parent=None):
-        BaseObject.__init__(self, name, parent=parent)
+        Node.__init__(self, name, parent=parent)
 
     @property
     def database(self):
@@ -254,12 +297,17 @@ class Device(BaseObject):
         pass
 
 
-class Attribute(BaseObject):
+class IAttribute(Node):
+    __metaclass__ = abc.ABCMeta
+
+    """
+    Base attribute class.
+    """
 
     valueChanged = Signal(object)
 
     def __init__(self, name, parent=None):
-        BaseObject.__init__(self, name, parent=parent)
+        Node.__init__(self, name, parent=parent)
 
     @property
     def device(self):
@@ -273,3 +321,14 @@ class Attribute(BaseObject):
     def write(self, value):
         pass
 
+
+def Database(name=None):
+    return Manager().get_database(name)
+
+
+def Device(name):
+    return Manager().get_device(name)
+
+
+def Attribute(name):
+    return Manager().get_attribute(name)
