@@ -10,8 +10,8 @@
 
 """Helper functions."""
 
-__all__ = ['isString', 'isSequence', 'moduleImport', 'moduleDirectory',
-           'callable_weakref']
+__all__ = ['is_string', 'is_sequence', 'module', 'module_directory',
+           'import_module', 'callable_weakref']
 
 import os
 import sys
@@ -41,7 +41,7 @@ __str_klasses = tuple(__str_klasses)
 __seq_klasses = tuple(__seq_klasses)
 
 
-def isString(obj):
+def is_string(obj):
     """Determines if the given object is a string.
 
     :param obj: the object to be analysed
@@ -51,7 +51,7 @@ def isString(obj):
     return isinstance(obj, __str_klasses)
 
 
-def isSequence(obj, inc_string=False):
+def is_sequence(obj, inc_string=False):
     """Determines if the given object is a sequence.
 
     :param obj: the object to be analysed
@@ -64,10 +64,10 @@ def isSequence(obj, inc_string=False):
     if inc_string:
         return isinstance(obj, __seq_klasses)
     else:
-        return isinstance(obj, __seq_klasses) and not isString(obj)
+        return isinstance(obj, __seq_klasses) and not is_string(obj)
 
 
-def moduleImport(name):
+def module(name):
     """Import module, returning the module after the last dot.
 
     :param name: name of the module to be imported
@@ -78,7 +78,7 @@ def moduleImport(name):
     return sys.modules[name]
 
 
-def moduleDirectory(module):
+def module_directory(module):
     """Returns the location of a given module.
 
     :param module: the module object
@@ -86,6 +86,40 @@ def moduleDirectory(module):
     :return: the directory where the module is located
     :rtype: str"""
     return os.path.dirname(os.path.abspath(module.__file__))
+
+
+def __resolve_name(name, package, level):
+    """Return the absolute name of the module to be imported."""
+    if not hasattr(package, 'rindex'):
+        raise ValueError("'package' not set to a string")
+    dot = len(package)
+    for x in xrange(level, 1, -1):
+        try:
+            dot = package.rindex('.', 0, dot)
+        except ValueError:
+            raise ValueError("attempted relative import beyond top-level "
+                              "package")
+    return "%s.%s" % (package[:dot], name)
+
+
+def import_module(name, package=None):
+    """Import a module.
+
+    The 'package' argument is required when performing a relative import. It
+    specifies the package to use as the anchor point from which to resolve the
+    relative import to an absolute import.
+
+    """
+    if name.startswith('.'):
+        if not package:
+            raise TypeError("relative imports require the 'package' argument")
+        level = 0
+        for character in name:
+            if character != '.':
+                break
+            level += 1
+        name = __resolve_name(name[level:], package, level)
+    return module(name)
 
 
 class _MethodWeakref(object):

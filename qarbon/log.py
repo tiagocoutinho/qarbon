@@ -21,14 +21,14 @@ import functools
 
 
 from qarbon import config
-from qarbon.util import isString
+from qarbon.util import is_string
 
 __logging_initialized = False
 
 
 def log(level, msg, *args, **kwargs):
     exc_info = kwargs.get('exc_info')
-    if exc_info is not None and isString(exc_info):
+    if exc_info is not None and is_string(exc_info):
         kwargs.pop('exc_info')
         exc_info = exc_info.upper()
         logging.log(level, msg, *args, **kwargs)
@@ -109,7 +109,7 @@ def initialize(log_level=None, log_format=None, stream=None,
 
     __set_log_stream(stream, log_format)
 
-    if isString(log_level):
+    if is_string(log_level):
         log_level = log_level.upper()
         if hasattr(logging, log_level):
             log_level = getattr(logging, log_level)
