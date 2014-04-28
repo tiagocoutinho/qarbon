@@ -98,3 +98,21 @@ DEFAULT_DEFAULT_SCHEME = 'tango'
 
 DEFAULT_SCHEME = DEFAULT_DEFAULT_SCHEME
 
+# ----------------------------------------------------------------------------
+# Plugins
+# ----------------------------------------------------------------------------
+
+def __get_plugin_path():
+    import os
+    try:
+        paths = os.environ["QARBON_PLUGIN_PATH"]
+    except KeyError:
+        paths = ""
+    paths = [path for path in paths.split(os.path.pathsep)
+             if os.path.isdir(path)]
+    paths.append(os.path.join(os.path.dirname(__file__), "plugins"))
+    return paths
+
+DEFAULT_PLUGIN_PATH = __get_plugin_path()
+
+PLUGIN_PATH = DEFAULT_PLUGIN_PATH[:]
