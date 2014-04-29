@@ -24,8 +24,20 @@ from qarbon import config
 QARBON_PLUGIN_MAGIC = "__qarbon_plugin__"
 
 
-def get_plugin_candidates():
-    """Get candidate plugin directories"""
+def __get_plugin_candidates():
+    """
+    Gets the list of candidate plugin directories.
+
+    A directory is considered to be a candidate for a plugin if
+    it is inside a directory in the PLUGIN_PATH and it contains
+    at least an *__init__.py* file.
+
+    Returns a sequence of tuples with two elements:
+    - the directory where the plugin resides
+    - the plugin name (= directory name)
+
+    :return: sequence of tuple<path(str), name(str)>
+    """
     plugins = []
     for path in config.PLUGIN_PATH:
         for elem in os.listdir(path):
@@ -41,8 +53,19 @@ def get_plugin_candidates():
 
 
 def get_plugins():
+    """
+    Gets the list of reachable plugins.
+
+    Returns a sequence of python objects that are plugins.
+    
+    A python object is a valid plugin ig it contains a member
+    called *__qarbon_plugin__*. It can be a python module or
+    a python class.
+
+    :return: sequence of python objects that are plugins
+    """
     plugins = []
-    plugin_candidates = get_plugin_candidates()
+    plugin_candidates = __get_plugin_candidates()
     for path, plugin in plugin_candidates:
         try:
             plugin_info = imp.find_module(plugin, [path])
@@ -58,12 +81,36 @@ def get_plugins():
 
 
 def get_plugin_info(plugin):
+    """
+    Gets the plugin meta information.
+    
+    Basically is just the dictionary that the __qarbon_plugin__ member of the
+    given plugin points to.
+
+    :return: a map of the plugin meta information.
+    """
     return getattr(plugin, QARBON_PLUGIN_MAGIC)
 
 
 def IPlugin(klass=None, **kwargs):
     """
     Decorator that transforms the decorated class into a plugin point.
+    Example::
+    
+        from qarbon.plugin import IPlugin
+
+        @IPlugin
+        class SendMailPlugin(object):
+
+            def send_mail(self, recipients, title, content):
+                pass
+
+        @IPlugin(name="bla", mode="expert")
+        class SuperPlugin(object):
+            
+            def i_do_super_stuff(self):
+                pass
+
     """
     if klass is None:
         return functools.partial(IPlugin, **kwargs)
