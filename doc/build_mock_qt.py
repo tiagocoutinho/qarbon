@@ -193,8 +193,12 @@ def build_module(module_name):
 
 def main():
     shutil.rmtree(abspath("mock"), ignore_errors=True)
-    module_names = ["sip", "PyQt4", "PyQt4.QtCore", "PyQt4.QtGui", 
-                    "PyQt4.QtSvg", "PyQt4.uic", "PyQt4.uic.uiparser"]
+    module_names = ["sip", 
+                    "PyQt4", "PyQt4.QtCore", "PyQt4.QtGui", 
+                    "PyQt4.QtSvg", 
+                    "PyQt4.uic",
+                    "PyQt4.uic.uiparser",
+                    "PyQt4.uic.properties"]
 
     for module_name in module_names:
         build_module(module_name)
