@@ -40,10 +40,12 @@ _set_package_source()
 
 __on_rtd = os.environ.get("READTHEDOCS", None) == "True"
 
-if __on_rtd:
-    sys.path.insert(0, _abspath('mock'))
-    import qarbon.config
-    qarbon.config.QT_AUTO_INIT = False
+# if needed only use mock if in readthedocs. 
+# For now we get better doc always with mock so we use it always
+
+sys.path.insert(0, _abspath('mock'))
+import qarbon.config
+qarbon.config.QT_AUTO_INIT = False
 
 import qarbon.release
 __name = qarbon.release.name
