@@ -5,13 +5,13 @@ import sip
 def _mockf(*args, **kwargs): pass
 
 
-PYQT_VERSION = 264707
+PYQT_VERSION = 264451
 
-PYQT_VERSION_STR = '4.10.3'
+PYQT_VERSION_STR = '4.9.3'
 
-QT_VERSION = 264197
+QT_VERSION = 264194
 
-QT_VERSION_STR = '4.8.5'
+QT_VERSION_STR = '4.8.2'
 
 QtCriticalMsg = 2
 
@@ -77,13 +77,9 @@ def noshowbase(*a,**k): pass
 
 def oct(*a,**k): pass
 
-def pyqtPickleProtocol(*a,**k): pass
-
 def pyqtRemoveInputHook(*a,**k): pass
 
 def pyqtRestoreInputHook(*a,**k): pass
-
-def pyqtSetPickleProtocol(*a,**k): pass
 
 def pyqtSignature(*a,**k): pass
 
@@ -174,23 +170,6 @@ class QtMsgType(int):
   def __init__(self, *args, **kwargs): pass
 
 
-class QBasicTimer(object):
-  pass
-
-  def isActive(*a,**k): pass
-  def start(*a,**k): pass
-  def stop(*a,**k): pass
-  def timerId(*a,**k): pass
-  def __init__(self, *args, **kwargs): pass
-
-
-class QAbstractFileEngineHandler(object):
-  pass
-
-  def create(*a,**k): pass
-  def __init__(self, *args, **kwargs): pass
-
-
 class QBitArray(object):
   pass
 
@@ -210,6 +189,23 @@ class QBitArray(object):
   def testBit(*a,**k): pass
   def toggleBit(*a,**k): pass
   def truncate(*a,**k): pass
+  def __init__(self, *args, **kwargs): pass
+
+
+class QAbstractFileEngineHandler(object):
+  pass
+
+  def create(*a,**k): pass
+  def __init__(self, *args, **kwargs): pass
+
+
+class QBasicTimer(object):
+  pass
+
+  def isActive(*a,**k): pass
+  def start(*a,**k): pass
+  def stop(*a,**k): pass
+  def timerId(*a,**k): pass
   def __init__(self, *args, **kwargs): pass
 
 
@@ -966,7 +962,6 @@ class QLocale(object):
   Afar = 4
   Afghanistan = 1
   Afrikaans = 5
-  Aghem = 216
   Akan = 146
   Albania = 2
   Albanian = 6
@@ -996,13 +991,11 @@ class QLocale(object):
   Aymara = 11
   Azerbaijan = 15
   Azerbaijani = 12
-  Bafia = 222
   Bahamas = 16
   Bahrain = 17
   Bambara = 188
   Bangladesh = 18
   Barbados = 19
-  Basaa = 217
   Bashkir = 13
   Basque = 14
   Belarus = 20
@@ -1018,7 +1011,6 @@ class QLocale(object):
   Bihari = 17
   Bislama = 18
   Blin = 152
-  Bodo = 215
   Bolivia = 26
   BosniaAndHerzegowina = 27
   Bosnian = 142
@@ -1057,7 +1049,6 @@ class QLocale(object):
   Colognian = 201
   Colombia = 47
   Comoros = 48
-  CongoSwahili = 230
   CookIslands = 51
   Cornish = 145
   Corsican = 26
@@ -1081,7 +1072,6 @@ class QLocale(object):
   Djibouti = 59
   Dominica = 60
   DominicanRepublic = 61
-  Duala = 219
   Dutch = 30
   EastTimor = 62
   Ecuador = 63
@@ -1096,7 +1086,6 @@ class QLocale(object):
   Estonian = 33
   Ethiopia = 69
   Ewe = 161
-  Ewondo = 221
   FalklandIslands = 70
   FaroeIslands = 71
   Faroese = 34
@@ -1175,7 +1164,6 @@ class QLocale(object):
   Japanese = 59
   Javanese = 60
   Jju = 158
-  JolaFonyi = 220
   Jordan = 109
   Kabuverdianu = 196
   Kabyle = 184
@@ -1199,13 +1187,12 @@ class QLocale(object):
   Kurdish = 67
   Kurundi = 68
   Kuwait = 115
-  Kwasio = 226
   Kyrgyzstan = 116
   Langi = 193
   Lao = 117
   Laothian = 69
   LastCountry = 246
-  LastLanguage = 234
+  LastLanguage = 214
   Latin = 70
   LatinAmericaAndTheCaribbean = 246
   LatinScript = 7
@@ -1221,7 +1208,6 @@ class QLocale(object):
   Lithuanian = 73
   LongFormat = 0
   LowGerman = 170
-  LubaKatanga = 223
   Luo = 210
   Luxembourg = 125
   Luyia = 204
@@ -1230,7 +1216,6 @@ class QLocale(object):
   Macedonian = 74
   Machame = 200
   Madagascar = 128
-  MakhuwaMeetto = 224
   Makonde = 192
   Malagasy = 75
   Malawi = 129
@@ -1266,7 +1251,6 @@ class QLocale(object):
   Morisyen = 191
   Morocco = 145
   Mozambique = 146
-  Mundang = 225
   Myanmar = 147
   Nama = 199
   Namibia = 148
@@ -1292,7 +1276,6 @@ class QLocale(object):
   Norwegian = 85
   NorwegianBokmal = 85
   NorwegianNynorsk = 141
-  Nuer = 227
   Nyankole = 185
   Nynorsk = 141
   Occitan = 86
@@ -1326,7 +1309,6 @@ class QLocale(object):
   Romania = 177
   Romanian = 95
   Rombo = 182
-  Rundi = 68
   Russian = 96
   RussianFederation = 178
   Rwa = 209
@@ -1335,13 +1317,11 @@ class QLocale(object):
   SaintBarthelemy = 244
   SaintKittsAndNevis = 180
   SaintMartin = 245
-  Sakha = 228
   Samburu = 179
   Samoa = 183
   Samoan = 97
   SanMarino = 184
   Sangho = 98
-  Sangu = 229
   Sanskrit = 99
   SaoTomeAndPrincipe = 185
   SaudiArabia = 186
@@ -1406,7 +1386,6 @@ class QLocale(object):
   Tamil = 117
   Tanzania = 210
   Taroko = 174
-  Tasawaq = 231
   Tatar = 118
   Telugu = 119
   Teso = 206
@@ -1446,7 +1425,6 @@ class QLocale(object):
   Uruguay = 227
   Uzbek = 131
   Uzbekistan = 228
-  Vai = 232
   Vanuatu = 229
   VaticanCityState = 230
   Venda = 160
@@ -1457,18 +1435,15 @@ class QLocale(object):
   Vunjo = 187
   Walamo = 162
   WallisAndFutunaIslands = 235
-  Walser = 233
   Welsh = 134
   WesternSahara = 236
   Wolof = 135
   Xhosa = 136
-  Yangben = 234
   Yemen = 237
   Yiddish = 137
   Yoruba = 138
   Yugoslavia = 238
   Zambia = 239
-  Zarma = 218
   Zhuang = 139
   Zimbabwe = 240
   Zulu = 140
@@ -2892,6 +2867,184 @@ class QObject(object):
   def __init__(self, *args, **kwargs): pass
 
 
+class QIODevice(QObject):
+  pass
+  Append = 4
+  NotOpen = 0
+  ReadOnly = 1
+  ReadWrite = 3
+  Text = 16
+  Truncate = 8
+  Unbuffered = 32
+  WriteOnly = 2
+  def aboutToClose(*a,**k): pass
+  def atEnd(*a,**k): pass
+  def bytesAvailable(*a,**k): pass
+  def bytesToWrite(*a,**k): pass
+  def bytesWritten(*a,**k): pass
+  def canReadLine(*a,**k): pass
+  def close(*a,**k): pass
+  def errorString(*a,**k): pass
+  def getChar(*a,**k): pass
+  def isOpen(*a,**k): pass
+  def isReadable(*a,**k): pass
+  def isSequential(*a,**k): pass
+  def isTextModeEnabled(*a,**k): pass
+  def isWritable(*a,**k): pass
+  def open(*a,**k): pass
+  def openMode(*a,**k): pass
+  def peek(*a,**k): pass
+  def pos(*a,**k): pass
+  def putChar(*a,**k): pass
+  def read(*a,**k): pass
+  def readAll(*a,**k): pass
+  def readChannelFinished(*a,**k): pass
+  def readData(*a,**k): pass
+  def readLine(*a,**k): pass
+  def readLineData(*a,**k): pass
+  def readyRead(*a,**k): pass
+  def reset(*a,**k): pass
+  def seek(*a,**k): pass
+  def setErrorString(*a,**k): pass
+  def setOpenMode(*a,**k): pass
+  def setTextModeEnabled(*a,**k): pass
+  def size(*a,**k): pass
+  def ungetChar(*a,**k): pass
+  def waitForBytesWritten(*a,**k): pass
+  def waitForReadyRead(*a,**k): pass
+  def write(*a,**k): pass
+  def writeData(*a,**k): pass
+
+class QBuffer(QIODevice):
+  pass
+
+  def buffer(*a,**k): pass
+  def data(*a,**k): pass
+  def setBuffer(*a,**k): pass
+  def setData(*a,**k): pass
+
+class QFile(QIODevice):
+  pass
+  AbortError = 6
+  AutoCloseHandle = 1
+  CopyError = 14
+  DontCloseHandle = 0
+  ExeGroup = 16
+  ExeOther = 1
+  ExeOwner = 4096
+  ExeUser = 256
+  FatalError = 3
+  NoError = 0
+  NoOptions = 0
+  OpenError = 5
+  PermissionsError = 13
+  PositionError = 11
+  ReadError = 1
+  ReadGroup = 64
+  ReadOther = 4
+  ReadOwner = 16384
+  ReadUser = 1024
+  RemoveError = 9
+  RenameError = 10
+  ResizeError = 12
+  ResourceError = 4
+  TimeOutError = 7
+  UnspecifiedError = 8
+  WriteError = 2
+  WriteGroup = 32
+  WriteOther = 2
+  WriteOwner = 8192
+  WriteUser = 512
+  def copy(*a,**k): pass
+  def decodeName(*a,**k): pass
+  def encodeName(*a,**k): pass
+  def error(*a,**k): pass
+  def exists(*a,**k): pass
+  def fileEngine(*a,**k): pass
+  def fileName(*a,**k): pass
+  def flush(*a,**k): pass
+  def handle(*a,**k): pass
+  def link(*a,**k): pass
+  def map(*a,**k): pass
+  def permissions(*a,**k): pass
+  def readLink(*a,**k): pass
+  def remove(*a,**k): pass
+  def rename(*a,**k): pass
+  def resize(*a,**k): pass
+  def setFileName(*a,**k): pass
+  def setPermissions(*a,**k): pass
+  def symLinkTarget(*a,**k): pass
+  def unmap(*a,**k): pass
+  def unsetError(*a,**k): pass
+
+class QTemporaryFile(QFile):
+  pass
+
+  def autoRemove(*a,**k): pass
+  def createLocalFile(*a,**k): pass
+  def fileTemplate(*a,**k): pass
+  def setAutoRemove(*a,**k): pass
+  def setFileTemplate(*a,**k): pass
+
+class QProcess(QIODevice):
+  pass
+  CrashExit = 1
+  Crashed = 1
+  FailedToStart = 0
+  ForwardedChannels = 2
+  MergedChannels = 1
+  NormalExit = 0
+  NotRunning = 0
+  ReadError = 3
+  Running = 2
+  SeparateChannels = 0
+  StandardError = 1
+  StandardOutput = 0
+  Starting = 1
+  Timedout = 2
+  UnknownError = 5
+  WriteError = 4
+  def closeReadChannel(*a,**k): pass
+  def closeWriteChannel(*a,**k): pass
+  def environment(*a,**k): pass
+  def error(*a,**k): pass
+  def execute(*a,**k): pass
+  def exitCode(*a,**k): pass
+  def exitStatus(*a,**k): pass
+  def finished(*a,**k): pass
+  def kill(*a,**k): pass
+  def pid(*a,**k): pass
+  def processChannelMode(*a,**k): pass
+  def processEnvironment(*a,**k): pass
+  def readAllStandardError(*a,**k): pass
+  def readAllStandardOutput(*a,**k): pass
+  def readChannel(*a,**k): pass
+  def readChannelMode(*a,**k): pass
+  def readyReadStandardError(*a,**k): pass
+  def readyReadStandardOutput(*a,**k): pass
+  def setEnvironment(*a,**k): pass
+  def setProcessChannelMode(*a,**k): pass
+  def setProcessEnvironment(*a,**k): pass
+  def setProcessState(*a,**k): pass
+  def setReadChannel(*a,**k): pass
+  def setReadChannelMode(*a,**k): pass
+  def setStandardErrorFile(*a,**k): pass
+  def setStandardInputFile(*a,**k): pass
+  def setStandardOutputFile(*a,**k): pass
+  def setStandardOutputProcess(*a,**k): pass
+  def setWorkingDirectory(*a,**k): pass
+  def setupChildProcess(*a,**k): pass
+  def start(*a,**k): pass
+  def startDetached(*a,**k): pass
+  def started(*a,**k): pass
+  def state(*a,**k): pass
+  def stateChanged(*a,**k): pass
+  def systemEnvironment(*a,**k): pass
+  def terminate(*a,**k): pass
+  def waitForFinished(*a,**k): pass
+  def waitForStarted(*a,**k): pass
+  def workingDirectory(*a,**k): pass
+
 class QAbstractAnimation(QObject):
   pass
   Backward = 1
@@ -3200,184 +3353,6 @@ class QSignalTransition(QAbstractTransition):
   def setSenderObject(*a,**k): pass
   def setSignal(*a,**k): pass
   def signal(*a,**k): pass
-
-class QIODevice(QObject):
-  pass
-  Append = 4
-  NotOpen = 0
-  ReadOnly = 1
-  ReadWrite = 3
-  Text = 16
-  Truncate = 8
-  Unbuffered = 32
-  WriteOnly = 2
-  def aboutToClose(*a,**k): pass
-  def atEnd(*a,**k): pass
-  def bytesAvailable(*a,**k): pass
-  def bytesToWrite(*a,**k): pass
-  def bytesWritten(*a,**k): pass
-  def canReadLine(*a,**k): pass
-  def close(*a,**k): pass
-  def errorString(*a,**k): pass
-  def getChar(*a,**k): pass
-  def isOpen(*a,**k): pass
-  def isReadable(*a,**k): pass
-  def isSequential(*a,**k): pass
-  def isTextModeEnabled(*a,**k): pass
-  def isWritable(*a,**k): pass
-  def open(*a,**k): pass
-  def openMode(*a,**k): pass
-  def peek(*a,**k): pass
-  def pos(*a,**k): pass
-  def putChar(*a,**k): pass
-  def read(*a,**k): pass
-  def readAll(*a,**k): pass
-  def readChannelFinished(*a,**k): pass
-  def readData(*a,**k): pass
-  def readLine(*a,**k): pass
-  def readLineData(*a,**k): pass
-  def readyRead(*a,**k): pass
-  def reset(*a,**k): pass
-  def seek(*a,**k): pass
-  def setErrorString(*a,**k): pass
-  def setOpenMode(*a,**k): pass
-  def setTextModeEnabled(*a,**k): pass
-  def size(*a,**k): pass
-  def ungetChar(*a,**k): pass
-  def waitForBytesWritten(*a,**k): pass
-  def waitForReadyRead(*a,**k): pass
-  def write(*a,**k): pass
-  def writeData(*a,**k): pass
-
-class QBuffer(QIODevice):
-  pass
-
-  def buffer(*a,**k): pass
-  def data(*a,**k): pass
-  def setBuffer(*a,**k): pass
-  def setData(*a,**k): pass
-
-class QFile(QIODevice):
-  pass
-  AbortError = 6
-  AutoCloseHandle = 1
-  CopyError = 14
-  DontCloseHandle = 0
-  ExeGroup = 16
-  ExeOther = 1
-  ExeOwner = 4096
-  ExeUser = 256
-  FatalError = 3
-  NoError = 0
-  NoOptions = 0
-  OpenError = 5
-  PermissionsError = 13
-  PositionError = 11
-  ReadError = 1
-  ReadGroup = 64
-  ReadOther = 4
-  ReadOwner = 16384
-  ReadUser = 1024
-  RemoveError = 9
-  RenameError = 10
-  ResizeError = 12
-  ResourceError = 4
-  TimeOutError = 7
-  UnspecifiedError = 8
-  WriteError = 2
-  WriteGroup = 32
-  WriteOther = 2
-  WriteOwner = 8192
-  WriteUser = 512
-  def copy(*a,**k): pass
-  def decodeName(*a,**k): pass
-  def encodeName(*a,**k): pass
-  def error(*a,**k): pass
-  def exists(*a,**k): pass
-  def fileEngine(*a,**k): pass
-  def fileName(*a,**k): pass
-  def flush(*a,**k): pass
-  def handle(*a,**k): pass
-  def link(*a,**k): pass
-  def map(*a,**k): pass
-  def permissions(*a,**k): pass
-  def readLink(*a,**k): pass
-  def remove(*a,**k): pass
-  def rename(*a,**k): pass
-  def resize(*a,**k): pass
-  def setFileName(*a,**k): pass
-  def setPermissions(*a,**k): pass
-  def symLinkTarget(*a,**k): pass
-  def unmap(*a,**k): pass
-  def unsetError(*a,**k): pass
-
-class QTemporaryFile(QFile):
-  pass
-
-  def autoRemove(*a,**k): pass
-  def createLocalFile(*a,**k): pass
-  def fileTemplate(*a,**k): pass
-  def setAutoRemove(*a,**k): pass
-  def setFileTemplate(*a,**k): pass
-
-class QProcess(QIODevice):
-  pass
-  CrashExit = 1
-  Crashed = 1
-  FailedToStart = 0
-  ForwardedChannels = 2
-  MergedChannels = 1
-  NormalExit = 0
-  NotRunning = 0
-  ReadError = 3
-  Running = 2
-  SeparateChannels = 0
-  StandardError = 1
-  StandardOutput = 0
-  Starting = 1
-  Timedout = 2
-  UnknownError = 5
-  WriteError = 4
-  def closeReadChannel(*a,**k): pass
-  def closeWriteChannel(*a,**k): pass
-  def environment(*a,**k): pass
-  def error(*a,**k): pass
-  def execute(*a,**k): pass
-  def exitCode(*a,**k): pass
-  def exitStatus(*a,**k): pass
-  def finished(*a,**k): pass
-  def kill(*a,**k): pass
-  def pid(*a,**k): pass
-  def processChannelMode(*a,**k): pass
-  def processEnvironment(*a,**k): pass
-  def readAllStandardError(*a,**k): pass
-  def readAllStandardOutput(*a,**k): pass
-  def readChannel(*a,**k): pass
-  def readChannelMode(*a,**k): pass
-  def readyReadStandardError(*a,**k): pass
-  def readyReadStandardOutput(*a,**k): pass
-  def setEnvironment(*a,**k): pass
-  def setProcessChannelMode(*a,**k): pass
-  def setProcessEnvironment(*a,**k): pass
-  def setProcessState(*a,**k): pass
-  def setReadChannel(*a,**k): pass
-  def setReadChannelMode(*a,**k): pass
-  def setStandardErrorFile(*a,**k): pass
-  def setStandardInputFile(*a,**k): pass
-  def setStandardOutputFile(*a,**k): pass
-  def setStandardOutputProcess(*a,**k): pass
-  def setWorkingDirectory(*a,**k): pass
-  def setupChildProcess(*a,**k): pass
-  def start(*a,**k): pass
-  def startDetached(*a,**k): pass
-  def started(*a,**k): pass
-  def state(*a,**k): pass
-  def stateChanged(*a,**k): pass
-  def systemEnvironment(*a,**k): pass
-  def terminate(*a,**k): pass
-  def waitForFinished(*a,**k): pass
-  def waitForStarted(*a,**k): pass
-  def workingDirectory(*a,**k): pass
 
 class QCoreApplication(QObject):
   pass
@@ -3922,7 +3897,6 @@ class QEvent(object):
   PaletteChange = 39
   ParentAboutToChange = 131
   ParentChange = 21
-  PlatformPanel = 212
   Polish = 75
   PolishRequest = 74
   QueryWhatsThis = 123

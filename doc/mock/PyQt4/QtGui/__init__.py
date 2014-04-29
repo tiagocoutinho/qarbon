@@ -163,8 +163,6 @@ class QImage(QPaintDevice):
   def cacheKey(*a,**k): pass
   def color(*a,**k): pass
   def colorTable(*a,**k): pass
-  def constBits(*a,**k): pass
-  def constScanLine(*a,**k): pass
   def convertToFormat(*a,**k): pass
   def copy(*a,**k): pass
   def createAlphaMask(*a,**k): pass
@@ -978,6 +976,132 @@ class QColumnView(QAbstractItemView):
   def setResizeGripsVisible(*a,**k): pass
   def updatePreviewWidget(*a,**k): pass
 
+class QTreeView(QAbstractItemView):
+  pass
+
+  def allColumnsShowFocus(*a,**k): pass
+  def autoExpandDelay(*a,**k): pass
+  def collapse(*a,**k): pass
+  def collapseAll(*a,**k): pass
+  def collapsed(*a,**k): pass
+  def columnAt(*a,**k): pass
+  def columnCountChanged(*a,**k): pass
+  def columnMoved(*a,**k): pass
+  def columnResized(*a,**k): pass
+  def columnViewportPosition(*a,**k): pass
+  def columnWidth(*a,**k): pass
+  def drawBranches(*a,**k): pass
+  def drawRow(*a,**k): pass
+  def drawTree(*a,**k): pass
+  def expand(*a,**k): pass
+  def expandAll(*a,**k): pass
+  def expandToDepth(*a,**k): pass
+  def expanded(*a,**k): pass
+  def expandsOnDoubleClick(*a,**k): pass
+  def header(*a,**k): pass
+  def hideColumn(*a,**k): pass
+  def indentation(*a,**k): pass
+  def indexAbove(*a,**k): pass
+  def indexBelow(*a,**k): pass
+  def indexRowSizeHint(*a,**k): pass
+  def isAnimated(*a,**k): pass
+  def isColumnHidden(*a,**k): pass
+  def isExpanded(*a,**k): pass
+  def isFirstColumnSpanned(*a,**k): pass
+  def isHeaderHidden(*a,**k): pass
+  def isRowHidden(*a,**k): pass
+  def isSortingEnabled(*a,**k): pass
+  def itemsExpandable(*a,**k): pass
+  def reexpand(*a,**k): pass
+  def resizeColumnToContents(*a,**k): pass
+  def rootIsDecorated(*a,**k): pass
+  def rowHeight(*a,**k): pass
+  def rowsRemoved(*a,**k): pass
+  def setAllColumnsShowFocus(*a,**k): pass
+  def setAnimated(*a,**k): pass
+  def setAutoExpandDelay(*a,**k): pass
+  def setColumnHidden(*a,**k): pass
+  def setColumnWidth(*a,**k): pass
+  def setExpanded(*a,**k): pass
+  def setExpandsOnDoubleClick(*a,**k): pass
+  def setFirstColumnSpanned(*a,**k): pass
+  def setHeader(*a,**k): pass
+  def setHeaderHidden(*a,**k): pass
+  def setIndentation(*a,**k): pass
+  def setItemsExpandable(*a,**k): pass
+  def setRootIsDecorated(*a,**k): pass
+  def setRowHidden(*a,**k): pass
+  def setSortingEnabled(*a,**k): pass
+  def setUniformRowHeights(*a,**k): pass
+  def setWordWrap(*a,**k): pass
+  def showColumn(*a,**k): pass
+  def sortByColumn(*a,**k): pass
+  def uniformRowHeights(*a,**k): pass
+  def wordWrap(*a,**k): pass
+
+class QTreeWidget(QTreeView):
+  pass
+
+  def addTopLevelItem(*a,**k): pass
+  def addTopLevelItems(*a,**k): pass
+  def clear(*a,**k): pass
+  def collapseItem(*a,**k): pass
+  def columnCount(*a,**k): pass
+  def currentColumn(*a,**k): pass
+  def currentItem(*a,**k): pass
+  def currentItemChanged(*a,**k): pass
+  def dropMimeData(*a,**k): pass
+  def editItem(*a,**k): pass
+  def expandItem(*a,**k): pass
+  def findItems(*a,**k): pass
+  def headerItem(*a,**k): pass
+  def indexFromItem(*a,**k): pass
+  def indexOfTopLevelItem(*a,**k): pass
+  def insertTopLevelItem(*a,**k): pass
+  def insertTopLevelItems(*a,**k): pass
+  def invisibleRootItem(*a,**k): pass
+  def isFirstItemColumnSpanned(*a,**k): pass
+  def isItemExpanded(*a,**k): pass
+  def isItemHidden(*a,**k): pass
+  def isItemSelected(*a,**k): pass
+  def itemAbove(*a,**k): pass
+  def itemActivated(*a,**k): pass
+  def itemAt(*a,**k): pass
+  def itemBelow(*a,**k): pass
+  def itemChanged(*a,**k): pass
+  def itemClicked(*a,**k): pass
+  def itemCollapsed(*a,**k): pass
+  def itemDoubleClicked(*a,**k): pass
+  def itemEntered(*a,**k): pass
+  def itemExpanded(*a,**k): pass
+  def itemFromIndex(*a,**k): pass
+  def itemPressed(*a,**k): pass
+  def itemSelectionChanged(*a,**k): pass
+  def itemWidget(*a,**k): pass
+  def items(*a,**k): pass
+  def mimeData(*a,**k): pass
+  def mimeTypes(*a,**k): pass
+  def removeItemWidget(*a,**k): pass
+  def scrollToItem(*a,**k): pass
+  def selectedItems(*a,**k): pass
+  def setColumnCount(*a,**k): pass
+  def setCurrentItem(*a,**k): pass
+  def setFirstItemColumnSpanned(*a,**k): pass
+  def setHeaderItem(*a,**k): pass
+  def setHeaderLabel(*a,**k): pass
+  def setHeaderLabels(*a,**k): pass
+  def setItemExpanded(*a,**k): pass
+  def setItemHidden(*a,**k): pass
+  def setItemSelected(*a,**k): pass
+  def setItemWidget(*a,**k): pass
+  def sortColumn(*a,**k): pass
+  def sortItems(*a,**k): pass
+  def supportedDropActions(*a,**k): pass
+  def takeTopLevelItem(*a,**k): pass
+  def topLevelItem(*a,**k): pass
+  def topLevelItemCount(*a,**k): pass
+  def visualItemRect(*a,**k): pass
+
 class QHeaderView(QAbstractItemView):
   pass
   Custom = 2
@@ -1288,132 +1412,6 @@ class QTableWidget(QTableView):
   def visualColumn(*a,**k): pass
   def visualItemRect(*a,**k): pass
   def visualRow(*a,**k): pass
-
-class QTreeView(QAbstractItemView):
-  pass
-
-  def allColumnsShowFocus(*a,**k): pass
-  def autoExpandDelay(*a,**k): pass
-  def collapse(*a,**k): pass
-  def collapseAll(*a,**k): pass
-  def collapsed(*a,**k): pass
-  def columnAt(*a,**k): pass
-  def columnCountChanged(*a,**k): pass
-  def columnMoved(*a,**k): pass
-  def columnResized(*a,**k): pass
-  def columnViewportPosition(*a,**k): pass
-  def columnWidth(*a,**k): pass
-  def drawBranches(*a,**k): pass
-  def drawRow(*a,**k): pass
-  def drawTree(*a,**k): pass
-  def expand(*a,**k): pass
-  def expandAll(*a,**k): pass
-  def expandToDepth(*a,**k): pass
-  def expanded(*a,**k): pass
-  def expandsOnDoubleClick(*a,**k): pass
-  def header(*a,**k): pass
-  def hideColumn(*a,**k): pass
-  def indentation(*a,**k): pass
-  def indexAbove(*a,**k): pass
-  def indexBelow(*a,**k): pass
-  def indexRowSizeHint(*a,**k): pass
-  def isAnimated(*a,**k): pass
-  def isColumnHidden(*a,**k): pass
-  def isExpanded(*a,**k): pass
-  def isFirstColumnSpanned(*a,**k): pass
-  def isHeaderHidden(*a,**k): pass
-  def isRowHidden(*a,**k): pass
-  def isSortingEnabled(*a,**k): pass
-  def itemsExpandable(*a,**k): pass
-  def reexpand(*a,**k): pass
-  def resizeColumnToContents(*a,**k): pass
-  def rootIsDecorated(*a,**k): pass
-  def rowHeight(*a,**k): pass
-  def rowsRemoved(*a,**k): pass
-  def setAllColumnsShowFocus(*a,**k): pass
-  def setAnimated(*a,**k): pass
-  def setAutoExpandDelay(*a,**k): pass
-  def setColumnHidden(*a,**k): pass
-  def setColumnWidth(*a,**k): pass
-  def setExpanded(*a,**k): pass
-  def setExpandsOnDoubleClick(*a,**k): pass
-  def setFirstColumnSpanned(*a,**k): pass
-  def setHeader(*a,**k): pass
-  def setHeaderHidden(*a,**k): pass
-  def setIndentation(*a,**k): pass
-  def setItemsExpandable(*a,**k): pass
-  def setRootIsDecorated(*a,**k): pass
-  def setRowHidden(*a,**k): pass
-  def setSortingEnabled(*a,**k): pass
-  def setUniformRowHeights(*a,**k): pass
-  def setWordWrap(*a,**k): pass
-  def showColumn(*a,**k): pass
-  def sortByColumn(*a,**k): pass
-  def uniformRowHeights(*a,**k): pass
-  def wordWrap(*a,**k): pass
-
-class QTreeWidget(QTreeView):
-  pass
-
-  def addTopLevelItem(*a,**k): pass
-  def addTopLevelItems(*a,**k): pass
-  def clear(*a,**k): pass
-  def collapseItem(*a,**k): pass
-  def columnCount(*a,**k): pass
-  def currentColumn(*a,**k): pass
-  def currentItem(*a,**k): pass
-  def currentItemChanged(*a,**k): pass
-  def dropMimeData(*a,**k): pass
-  def editItem(*a,**k): pass
-  def expandItem(*a,**k): pass
-  def findItems(*a,**k): pass
-  def headerItem(*a,**k): pass
-  def indexFromItem(*a,**k): pass
-  def indexOfTopLevelItem(*a,**k): pass
-  def insertTopLevelItem(*a,**k): pass
-  def insertTopLevelItems(*a,**k): pass
-  def invisibleRootItem(*a,**k): pass
-  def isFirstItemColumnSpanned(*a,**k): pass
-  def isItemExpanded(*a,**k): pass
-  def isItemHidden(*a,**k): pass
-  def isItemSelected(*a,**k): pass
-  def itemAbove(*a,**k): pass
-  def itemActivated(*a,**k): pass
-  def itemAt(*a,**k): pass
-  def itemBelow(*a,**k): pass
-  def itemChanged(*a,**k): pass
-  def itemClicked(*a,**k): pass
-  def itemCollapsed(*a,**k): pass
-  def itemDoubleClicked(*a,**k): pass
-  def itemEntered(*a,**k): pass
-  def itemExpanded(*a,**k): pass
-  def itemFromIndex(*a,**k): pass
-  def itemPressed(*a,**k): pass
-  def itemSelectionChanged(*a,**k): pass
-  def itemWidget(*a,**k): pass
-  def items(*a,**k): pass
-  def mimeData(*a,**k): pass
-  def mimeTypes(*a,**k): pass
-  def removeItemWidget(*a,**k): pass
-  def scrollToItem(*a,**k): pass
-  def selectedItems(*a,**k): pass
-  def setColumnCount(*a,**k): pass
-  def setCurrentItem(*a,**k): pass
-  def setFirstItemColumnSpanned(*a,**k): pass
-  def setHeaderItem(*a,**k): pass
-  def setHeaderLabel(*a,**k): pass
-  def setHeaderLabels(*a,**k): pass
-  def setItemExpanded(*a,**k): pass
-  def setItemHidden(*a,**k): pass
-  def setItemSelected(*a,**k): pass
-  def setItemWidget(*a,**k): pass
-  def sortColumn(*a,**k): pass
-  def sortItems(*a,**k): pass
-  def supportedDropActions(*a,**k): pass
-  def takeTopLevelItem(*a,**k): pass
-  def topLevelItem(*a,**k): pass
-  def topLevelItemCount(*a,**k): pass
-  def visualItemRect(*a,**k): pass
 
 class QGraphicsView(QAbstractScrollArea):
   pass
@@ -3706,6 +3704,56 @@ class QToolTip(object):
   def __init__(self, *args, **kwargs): pass
 
 
+class QTransform(object):
+  pass
+  TxNone = 0
+  TxProject = 16
+  TxRotate = 4
+  TxScale = 2
+  TxShear = 8
+  TxTranslate = 1
+  def adjoint(*a,**k): pass
+  def det(*a,**k): pass
+  def determinant(*a,**k): pass
+  def dx(*a,**k): pass
+  def dy(*a,**k): pass
+  def fromScale(*a,**k): pass
+  def fromTranslate(*a,**k): pass
+  def inverted(*a,**k): pass
+  def isAffine(*a,**k): pass
+  def isIdentity(*a,**k): pass
+  def isInvertible(*a,**k): pass
+  def isRotating(*a,**k): pass
+  def isScaling(*a,**k): pass
+  def isTranslating(*a,**k): pass
+  def m11(*a,**k): pass
+  def m12(*a,**k): pass
+  def m13(*a,**k): pass
+  def m21(*a,**k): pass
+  def m22(*a,**k): pass
+  def m23(*a,**k): pass
+  def m31(*a,**k): pass
+  def m32(*a,**k): pass
+  def m33(*a,**k): pass
+  def map(*a,**k): pass
+  def mapRect(*a,**k): pass
+  def mapToPolygon(*a,**k): pass
+  def quadToQuad(*a,**k): pass
+  def quadToSquare(*a,**k): pass
+  def reset(*a,**k): pass
+  def rotate(*a,**k): pass
+  def rotateRadians(*a,**k): pass
+  def scale(*a,**k): pass
+  def setMatrix(*a,**k): pass
+  def shear(*a,**k): pass
+  def squareToQuad(*a,**k): pass
+  def toAffine(*a,**k): pass
+  def translate(*a,**k): pass
+  def transposed(*a,**k): pass
+  def type(*a,**k): pass
+  def __init__(self, *args, **kwargs): pass
+
+
 class QFileIconProvider(object):
   pass
   Computer = 0
@@ -3926,32 +3974,6 @@ class QFontInfo(object):
   def __init__(self, *args, **kwargs): pass
 
 
-class QMatrix(object):
-  pass
-
-  def det(*a,**k): pass
-  def determinant(*a,**k): pass
-  def dx(*a,**k): pass
-  def dy(*a,**k): pass
-  def inverted(*a,**k): pass
-  def isIdentity(*a,**k): pass
-  def isInvertible(*a,**k): pass
-  def m11(*a,**k): pass
-  def m12(*a,**k): pass
-  def m21(*a,**k): pass
-  def m22(*a,**k): pass
-  def map(*a,**k): pass
-  def mapRect(*a,**k): pass
-  def mapToPolygon(*a,**k): pass
-  def reset(*a,**k): pass
-  def rotate(*a,**k): pass
-  def scale(*a,**k): pass
-  def setMatrix(*a,**k): pass
-  def shear(*a,**k): pass
-  def translate(*a,**k): pass
-  def __init__(self, *args, **kwargs): pass
-
-
 class QFontMetricsF(object):
   pass
 
@@ -3980,6 +4002,22 @@ class QFontMetricsF(object):
   def width(*a,**k): pass
   def widthChar(*a,**k): pass
   def xHeight(*a,**k): pass
+  def __init__(self, *args, **kwargs): pass
+
+
+class QGestureRecognizer(object):
+  pass
+  CancelGesture = 16
+  ConsumeEventHint = 256
+  FinishGesture = 8
+  Ignore = 1
+  MayBeGesture = 2
+  TriggerGesture = 4
+  def create(*a,**k): pass
+  def recognize(*a,**k): pass
+  def registerRecognizer(*a,**k): pass
+  def reset(*a,**k): pass
+  def unregisterRecognizer(*a,**k): pass
   def __init__(self, *args, **kwargs): pass
 
 
@@ -4264,72 +4302,29 @@ class QKeySequence(object):
   def __init__(self, *args, **kwargs): pass
 
 
-class QPalette(object):
+class QMatrix(object):
   pass
-  Active = 0
-  All = 5
-  AlternateBase = 16
-  Background = 10
-  Base = 9
-  BrightText = 7
-  Button = 1
-  ButtonText = 8
-  Current = 4
-  Dark = 4
-  Disabled = 1
-  Foreground = 0
-  Highlight = 12
-  HighlightedText = 13
-  Inactive = 2
-  Light = 2
-  Link = 14
-  LinkVisited = 15
-  Mid = 5
-  Midlight = 3
-  NColorGroups = 3
-  NColorRoles = 20
-  NoRole = 17
-  Normal = 0
-  Shadow = 11
-  Text = 6
-  ToolTipBase = 18
-  ToolTipText = 19
-  Window = 10
-  WindowText = 0
-  def alternateBase(*a,**k): pass
-  def background(*a,**k): pass
-  def base(*a,**k): pass
-  def brightText(*a,**k): pass
-  def brush(*a,**k): pass
-  def button(*a,**k): pass
-  def buttonText(*a,**k): pass
-  def cacheKey(*a,**k): pass
-  def color(*a,**k): pass
-  def currentColorGroup(*a,**k): pass
-  def dark(*a,**k): pass
-  def foreground(*a,**k): pass
-  def highlight(*a,**k): pass
-  def highlightedText(*a,**k): pass
-  def isBrushSet(*a,**k): pass
-  def isCopyOf(*a,**k): pass
-  def isEqual(*a,**k): pass
-  def light(*a,**k): pass
-  def link(*a,**k): pass
-  def linkVisited(*a,**k): pass
-  def mid(*a,**k): pass
-  def midlight(*a,**k): pass
-  def resolve(*a,**k): pass
-  def serialNumber(*a,**k): pass
-  def setBrush(*a,**k): pass
-  def setColor(*a,**k): pass
-  def setColorGroup(*a,**k): pass
-  def setCurrentColorGroup(*a,**k): pass
-  def shadow(*a,**k): pass
-  def text(*a,**k): pass
-  def toolTipBase(*a,**k): pass
-  def toolTipText(*a,**k): pass
-  def window(*a,**k): pass
-  def windowText(*a,**k): pass
+
+  def det(*a,**k): pass
+  def determinant(*a,**k): pass
+  def dx(*a,**k): pass
+  def dy(*a,**k): pass
+  def inverted(*a,**k): pass
+  def isIdentity(*a,**k): pass
+  def isInvertible(*a,**k): pass
+  def m11(*a,**k): pass
+  def m12(*a,**k): pass
+  def m21(*a,**k): pass
+  def m22(*a,**k): pass
+  def map(*a,**k): pass
+  def mapRect(*a,**k): pass
+  def mapToPolygon(*a,**k): pass
+  def reset(*a,**k): pass
+  def rotate(*a,**k): pass
+  def scale(*a,**k): pass
+  def setMatrix(*a,**k): pass
+  def shear(*a,**k): pass
+  def translate(*a,**k): pass
   def __init__(self, *args, **kwargs): pass
 
 
@@ -4798,6 +4793,75 @@ class QPainterPathStroker(object):
   def setMiterLimit(*a,**k): pass
   def setWidth(*a,**k): pass
   def width(*a,**k): pass
+  def __init__(self, *args, **kwargs): pass
+
+
+class QPalette(object):
+  pass
+  Active = 0
+  All = 5
+  AlternateBase = 16
+  Background = 10
+  Base = 9
+  BrightText = 7
+  Button = 1
+  ButtonText = 8
+  Current = 4
+  Dark = 4
+  Disabled = 1
+  Foreground = 0
+  Highlight = 12
+  HighlightedText = 13
+  Inactive = 2
+  Light = 2
+  Link = 14
+  LinkVisited = 15
+  Mid = 5
+  Midlight = 3
+  NColorGroups = 3
+  NColorRoles = 20
+  NoRole = 17
+  Normal = 0
+  Shadow = 11
+  Text = 6
+  ToolTipBase = 18
+  ToolTipText = 19
+  Window = 10
+  WindowText = 0
+  def alternateBase(*a,**k): pass
+  def background(*a,**k): pass
+  def base(*a,**k): pass
+  def brightText(*a,**k): pass
+  def brush(*a,**k): pass
+  def button(*a,**k): pass
+  def buttonText(*a,**k): pass
+  def cacheKey(*a,**k): pass
+  def color(*a,**k): pass
+  def currentColorGroup(*a,**k): pass
+  def dark(*a,**k): pass
+  def foreground(*a,**k): pass
+  def highlight(*a,**k): pass
+  def highlightedText(*a,**k): pass
+  def isBrushSet(*a,**k): pass
+  def isCopyOf(*a,**k): pass
+  def isEqual(*a,**k): pass
+  def light(*a,**k): pass
+  def link(*a,**k): pass
+  def linkVisited(*a,**k): pass
+  def mid(*a,**k): pass
+  def midlight(*a,**k): pass
+  def resolve(*a,**k): pass
+  def serialNumber(*a,**k): pass
+  def setBrush(*a,**k): pass
+  def setColor(*a,**k): pass
+  def setColorGroup(*a,**k): pass
+  def setCurrentColorGroup(*a,**k): pass
+  def shadow(*a,**k): pass
+  def text(*a,**k): pass
+  def toolTipBase(*a,**k): pass
+  def toolTipText(*a,**k): pass
+  def window(*a,**k): pass
+  def windowText(*a,**k): pass
   def __init__(self, *args, **kwargs): pass
 
 
@@ -5569,6 +5633,18 @@ class QTextLine(object):
   def __init__(self, *args, **kwargs): pass
 
 
+class QWhatsThis(object):
+  pass
+
+  def createAction(*a,**k): pass
+  def enterWhatsThisMode(*a,**k): pass
+  def hideText(*a,**k): pass
+  def inWhatsThisMode(*a,**k): pass
+  def leaveWhatsThisMode(*a,**k): pass
+  def showText(*a,**k): pass
+  def __init__(self, *args, **kwargs): pass
+
+
 class QTableWidgetSelectionRange(object):
   pass
 
@@ -6217,56 +6293,6 @@ class QTextTableCell(object):
   def __init__(self, *args, **kwargs): pass
 
 
-class QTransform(object):
-  pass
-  TxNone = 0
-  TxProject = 16
-  TxRotate = 4
-  TxScale = 2
-  TxShear = 8
-  TxTranslate = 1
-  def adjoint(*a,**k): pass
-  def det(*a,**k): pass
-  def determinant(*a,**k): pass
-  def dx(*a,**k): pass
-  def dy(*a,**k): pass
-  def fromScale(*a,**k): pass
-  def fromTranslate(*a,**k): pass
-  def inverted(*a,**k): pass
-  def isAffine(*a,**k): pass
-  def isIdentity(*a,**k): pass
-  def isInvertible(*a,**k): pass
-  def isRotating(*a,**k): pass
-  def isScaling(*a,**k): pass
-  def isTranslating(*a,**k): pass
-  def m11(*a,**k): pass
-  def m12(*a,**k): pass
-  def m13(*a,**k): pass
-  def m21(*a,**k): pass
-  def m22(*a,**k): pass
-  def m23(*a,**k): pass
-  def m31(*a,**k): pass
-  def m32(*a,**k): pass
-  def m33(*a,**k): pass
-  def map(*a,**k): pass
-  def mapRect(*a,**k): pass
-  def mapToPolygon(*a,**k): pass
-  def quadToQuad(*a,**k): pass
-  def quadToSquare(*a,**k): pass
-  def reset(*a,**k): pass
-  def rotate(*a,**k): pass
-  def rotateRadians(*a,**k): pass
-  def scale(*a,**k): pass
-  def setMatrix(*a,**k): pass
-  def shear(*a,**k): pass
-  def squareToQuad(*a,**k): pass
-  def toAffine(*a,**k): pass
-  def translate(*a,**k): pass
-  def transposed(*a,**k): pass
-  def type(*a,**k): pass
-  def __init__(self, *args, **kwargs): pass
-
-
 class QTreeWidgetItemIterator(object):
   pass
   All = 0
@@ -6362,18 +6388,6 @@ class QVector4D(object):
   def x(*a,**k): pass
   def y(*a,**k): pass
   def z(*a,**k): pass
-  def __init__(self, *args, **kwargs): pass
-
-
-class QWhatsThis(object):
-  pass
-
-  def createAction(*a,**k): pass
-  def enterWhatsThisMode(*a,**k): pass
-  def hideText(*a,**k): pass
-  def inWhatsThisMode(*a,**k): pass
-  def leaveWhatsThisMode(*a,**k): pass
-  def showText(*a,**k): pass
   def __init__(self, *args, **kwargs): pass
 
 
@@ -9517,22 +9531,6 @@ class QWidgetItem(QLayoutItem):
   pass
 
 
-  def __init__(self, *args, **kwargs): pass
-
-
-class QGestureRecognizer(object):
-  pass
-  CancelGesture = 16
-  ConsumeEventHint = 256
-  FinishGesture = 8
-  Ignore = 1
-  MayBeGesture = 2
-  TriggerGesture = 4
-  def create(*a,**k): pass
-  def recognize(*a,**k): pass
-  def registerRecognizer(*a,**k): pass
-  def reset(*a,**k): pass
-  def unregisterRecognizer(*a,**k): pass
   def __init__(self, *args, **kwargs): pass
 
 

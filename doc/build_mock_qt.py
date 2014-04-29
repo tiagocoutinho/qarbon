@@ -11,6 +11,7 @@
 """builds a mock PyQt4 module inside a mock directory relative to the path
 of this file"""
 
+from __future__ import print_function
 from __future__ import with_statement
 
 import os
@@ -58,6 +59,8 @@ def _import(name):
 
 
 def build_class(k):
+    packages = set()
+
     k_name = k.__name__
     k_module_name = k.__module__
 
@@ -102,6 +105,11 @@ def build_class(k):
 
     if super_k_full_name.startswith("sip."):
         super_name = "object"
+
+    if "." in super_name:
+        pkg = super_name.rsplit(".",1)[0]
+        packages.add(pkg)
+
     klass_str = klass_template.format(klass=k_name,
                                       super_klass=super_name,
                                       methods=methods,
@@ -109,8 +117,8 @@ def build_class(k):
 
     if k is PyQt4.QtCore.QObject or not issubclass(k, PyQt4.QtCore.QObject):
         klass_str += "\n  def __init__(self, *args, **kwargs): pass\n"
-
-    return klass_str
+    
+    return klass_str, packages
 
 
 def classes(m):
@@ -129,7 +137,7 @@ def classes(m):
     return sorted(klasses, key=lambda k: k.mro()[::-1]) + list(extra)
 
 
-def build_module(module_name, imports):
+def build_module(module_name):
 
     rel_dir = module_name.split(".")
     abs_dir = abspath("mock", *rel_dir)
@@ -140,6 +148,7 @@ def build_module(module_name, imports):
     functions = []
     klasses = []
     constants = []
+    packages = set()
     for module_element_name in dir(module):
         if module_element_name.startswith("__"):
             continue
@@ -156,9 +165,16 @@ def build_module(module_name, imports):
                                                       value=module_element))
 
     for klass in classes(module):
-        klasses.append(build_class(klass))
+        klass_text, klass_packages = build_class(klass)
+        klasses.append(klass_text)
+        packages.update(klass_packages)
 
-    imports = "\n".join([import_template.format(name=m) for m in imports])
+    if module_name.startswith("PyQt"):
+        packages.add("sip")
+
+    print("{0}: {1}".format(module_name, ", ".join(packages)))
+
+    imports = "\n".join([import_template.format(name=m) for m in packages])
 
     module_init = module_init_template.format(imports=imports)
     constants = "\n\n".join(constants)
@@ -177,12 +193,11 @@ def build_module(module_name, imports):
 
 def main():
     shutil.rmtree(abspath("mock"), ignore_errors=True)
-    module_names = [("sip", ()),
-                    ("PyQt4", ("sip",)),
-                    ("PyQt4.QtCore", ("sip",)),
-                    ("PyQt4.QtGui", ("sip", "PyQt4.QtCore",))]
-    for module_name, imports in module_names:
-        build_module(module_name, imports)
+    module_names = ["sip", "PyQt4", "PyQt4.QtCore", "PyQt4.QtGui", 
+                    "PyQt4.QtSvg", "PyQt4.uic", "PyQt4.uic.uiparser"]
+
+    for module_name in module_names:
+        build_module(module_name)
 
 if __name__ == "__main__":
     main()
