@@ -9,4 +9,4 @@ qarbon.qt.gui.application
       :nosignatures:
       
       Application
-      getApplication
+
