@@ -38,6 +38,7 @@ Helpers
     qarbon.qt.gui.application
     qarbon.qt.gui.color
     qarbon.qt.gui.icon
+    qarbon.qt.gui.ui
     qarbon.qt.gui.util
 
 Widgets
