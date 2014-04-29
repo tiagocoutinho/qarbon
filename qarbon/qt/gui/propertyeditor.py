@@ -31,7 +31,7 @@ import weakref
 
 from qarbon import log
 from qarbon.external.qt import QtCore, QtGui
-from qarbon.qt.gui.ui.uipropertyeditor import Ui_propertyEditor
+from qarbon.qt.gui.ui import UILoadable
 
 
 def getPropertyValueDisplay(qMetaProperty, value):
@@ -55,15 +55,15 @@ def getPropertyValueToolTip(qMetaProperty, value):
     return str(value)
 
 
+@UILoadable(with_ui="_ui")
 class PropertyEditor(QtGui.QWidget):
     """A widget dedicated view/edit the properties of any QObject."""
 
     def __init__(self, parent=None, qobject=None):
         super(PropertyEditor, self).__init__(parent)
-        self.__ui = ui = Ui_propertyEditor()
-        ui.setupUi(self)
+        self.loadUi()
 
-        ui.focusButton.clicked.connect(self.__onFocus)
+        self._ui.focusButton.clicked.connect(self.__onFocus)
 
         self.setQObject(qobject)
 
@@ -85,7 +85,7 @@ class PropertyEditor(QtGui.QWidget):
 
         :param qobject: the new QObject (can be None)
         """
-        ui = self.__ui
+        ui = self._ui
         superClassName = ""
         _class = ""
         className = ""

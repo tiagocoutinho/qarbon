@@ -18,9 +18,10 @@ import collections
 from qarbon.external.qt import QtCore, QtGui
 from qarbon.qt.gui.application import Application
 from qarbon.qt.gui.icon import Pixmap
-from qarbon.qt.gui.ui.uiinputpanel import Ui_InputPanel
+from qarbon.qt.gui.ui import UILoadable
 
 
+@UILoadable(with_ui="_ui")
 class InputPanel(QtGui.QWidget):
     """A panel design to get an input from the user.
 
@@ -81,10 +82,9 @@ class InputPanel(QtGui.QWidget):
     """
     def __init__(self, input_data, parent=None):
         super(InputPanel, self).__init__(parent=parent)
+        self.loadUi()
         self._input_data = input_data
-        self._ui = ui = Ui_InputPanel()
-        ui.setupUi(self)
-        self.fill_main_panel(ui.inputPanel, input_data)
+        self.fill_main_panel(self.inputPanel(), input_data)
 
     def fill_main_panel(self, panel, input_data):
         layout = QtGui.QVBoxLayout()
@@ -328,14 +328,14 @@ class InputPanel(QtGui.QWidget):
         return self._ui.inputWidget.checkState() == QtCore.Qt.Checked
 
     def inputPanel(self):
-        return self._ui.inputPanel
+        return self._ui._inputPanel
 
     def buttonBox(self):
         """Returns the button box from this panel
 
         :return: the button box from this panel
         :rtype: PyQt4.Qt.QDialogButtonBox"""
-        return self._ui.buttonBox
+        return self._ui._buttonBox
 
     def addButton(self, button, role=QtGui.QDialogButtonBox.ActionRole):
         """Adds the given button with the given to the button box
@@ -344,7 +344,7 @@ class InputPanel(QtGui.QWidget):
         :type button: PyQt4.QtGui.QPushButton
         :param role: button role
         :type role: PyQt4.Qt.QDialogButtonBox.ButtonRole"""
-        self._ui.buttonBox.addButton(button, role)
+        self.buttonBox().addButton(button, role)
 
     def setIconPixmap(self, pixmap):
         """Sets the icon to the dialog
